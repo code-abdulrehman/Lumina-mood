@@ -9,11 +9,12 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    Image
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMood } from '../context/MoodContext';
-import { ExternalLink, Key, ShieldCheck, Sparkles, Trash2, Palette } from 'lucide-react-native';
+import { ExternalLink, Key, ShieldCheck, Sparkles, Trash2, Palette, BrainCircuit, Activity } from 'lucide-react-native';
 
 const COLOR_OPTIONS = [
     '#6366F1', // Indigo (Default)
@@ -72,9 +73,25 @@ export const SettingsScreen = () => {
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 100 }]}>
+                    {/* BRANDING HEADER */}
+                    <View style={styles.brandingSection}>
+                        <Image
+                            source={require('../../assets/branding_logo.png')}
+                            style={styles.brandingLogo}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.brandingTextContainer}>
+                            <Text style={[styles.brandTitle, { color: theme.text }]}>Lumina Mood</Text>
+                            <View style={styles.taglineRow}>
+                                <BrainCircuit size={12} color={primaryColor} />
+                                <Text style={[styles.brandTagline, { color: theme.textSecondary }]}>Neural Intelligence AI</Text>
+                            </View>
+                        </View>
+                    </View>
+
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
-                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Customize your experience.</Text>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Fine-tune your personal insights engine.</Text>
                     </View>
 
                     {/* THEME SECTION */}
@@ -181,6 +198,38 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: 32,
+    },
+    brandingSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 32,
+        paddingVertical: 10,
+    },
+    brandingLogo: {
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        marginRight: 16,
+    },
+    brandingTextContainer: {
+        flex: 1,
+    },
+    brandTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        marginBottom: 2,
+        letterSpacing: -0.5,
+    },
+    taglineRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    brandTagline: {
+        fontSize: 12,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginLeft: 6,
     },
     title: {
         fontSize: 32,

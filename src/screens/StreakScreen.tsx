@@ -140,17 +140,18 @@ export const StreakScreen = () => {
                                 <View key={index} style={styles.pillCol}>
                                     <View style={[
                                         styles.pillContainer,
-                                        { backgroundColor: theme.border + '30' },
-                                        isToday && { borderColor: primaryColor, borderStyle: 'solid' }
+                                        { backgroundColor: theme.border + '15', borderColor: active ? primaryColor : 'transparent' }
                                     ]}>
-                                        {active && (
-                                            <View style={[styles.pillFill, { backgroundColor: primaryColor }]}>
-                                                <Flame size={16} color="#FFF" fill="#FFF" />
-                                            </View>
-                                        )}
+                                        <View style={[styles.pillFill, { backgroundColor: active ? primaryColor : "transparent" }]}>
+                                            <Flame
+                                                size={16}
+                                                color={active ? "#FFF" : theme.textSecondary + '40'}
+                                                fill={active ? "#FFF" : "transparent"}
+                                            />
+                                        </View>
                                         <Text style={[
                                             styles.pillDate,
-                                            { color: active ? theme.primary : theme.textSecondary },
+                                            { color: active ? primaryColor : theme.textSecondary },
                                             active && { marginBottom: 4 }
                                         ]}>
                                             {format(day, 'd')}
