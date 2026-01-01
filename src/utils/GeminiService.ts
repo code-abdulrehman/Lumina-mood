@@ -7,8 +7,15 @@ export interface ChatMessage {
 
 /**
  * AI MODEL CONFIGURATION
+ * We use a prioritized list of models to stay within free tier quotas.
+ * Verified Model IDs from Google AI Documentation (Jan 2026).
  */
-const ACTIVE_MODEL = "gemini-3-flash-preview"; // Switched for higher quota (20 req/day limit on gemini-3)
+const MODEL_PRIORITY = [
+    "gemini-2.0-flash-exp",   // Newer, high-performance experimental model with high free-tier limits
+    "gemini-1.5-flash",       // Stable standard flash model
+    "gemini-1.5-flash-8b",    // Smaller, high-speed model
+    "gemini-1.5-pro",         // More complex model
+];
 
 export const getGeminiChatResponse = async (
     apiKey: string,
@@ -16,83 +23,96 @@ export const getGeminiChatResponse = async (
     history: ChatMessage[],
     userInput?: string
 ) => {
-    try {
-        if (!apiKey) throw new Error("Missing API Key");
+    // Attempt each model in order of priority
+    for (let i = 0; i < MODEL_PRIORITY.length; i++) {
+        const activeModelName = MODEL_PRIORITY[i];
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        try {
+            if (!apiKey) throw new Error("Missing API Key");
 
-        const systemPrompt = `You are Lumina, a warm mood companion.
-        The user is currently feeling "${moodLabel}".
-        
-        INSTRUCTIONS:
-        1. Keep responses under 3 sentences.
-        2. Offer 1 grounded tip.
-        3. ALWAYS end with exactly 3 suggestions in this format:
-        [SUGGESTIONS]: Question 1? | Question 2? | Question 3?
-        
-        No medical advice.`;
+            const genAI = new GoogleGenerativeAI(apiKey);
 
-        const model = genAI.getGenerativeModel({
-            model: ACTIVE_MODEL,
-            systemInstruction: systemPrompt
-        });
+            const systemPrompt = `You are Lumina, a warm mood companion.
+            The user is currently feeling "${moodLabel}".
+            
+            INSTRUCTIONS:
+            1. Keep responses under 3 sentences.
+            2. Offer 1 grounded tip.
+            3. ALWAYS end with exactly 3 suggestions in this format:
+            [SUGGESTIONS]: Question 1? | Question 2? | Question 3?
+            
+            No medical advice.`;
 
-        // SDK history requires alternating roles: user, model, user, model...
-        // AND THE FIRST MESSAGE MUST BE FROM 'user'.
-        let historyForSDK = history
-            .filter(msg => msg.text && msg.text.trim().length > 0)
-            .map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.text }],
-            }));
-
-        // Fix: The chat history MUST start with a 'user' message. 
-        // If the first message in our history is 'model', we must prepend a dummy user start or skip it.
-        if (historyForSDK.length > 0 && historyForSDK[0].role === 'model') {
-            historyForSDK.unshift({
-                role: 'user',
-                parts: [{ text: `I am feeling ${moodLabel}.` }]
+            const model = genAI.getGenerativeModel({
+                model: activeModelName,
+                systemInstruction: systemPrompt
             });
-        }
 
-        let lastUserMsg = userInput || (historyForSDK.length === 0 ? `I'm feeling ${moodLabel}.` : "Tell me more.");
+            // SDK history preparation
+            let historyForSDK = history
+                .filter(msg => msg.text && msg.text.trim().length > 0)
+                .map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }],
+                }));
 
-        // If history already has that last message at the end, remove it from history array 
-        // so it can be the "main" message sent in sendMessage.
-        if (historyForSDK.length > 0 && historyForSDK[historyForSDK.length - 1].role === 'user') {
-            const popped = historyForSDK.pop();
-            if (popped) lastUserMsg = popped.parts[0].text;
-        }
-
-        const chat = model.startChat({
-            history: historyForSDK,
-            generationConfig: {
-                maxOutputTokens: 500,
-                temperature: 0.7,
+            if (historyForSDK.length > 0 && historyForSDK[0].role === 'model') {
+                historyForSDK.unshift({
+                    role: 'user',
+                    parts: [{ text: `I am feeling ${moodLabel}.` }]
+                });
             }
-        });
 
-        const result = await chat.sendMessage(lastUserMsg);
-        const response = await result.response;
-        const text = response.text();
+            let lastUserMsg = userInput || (historyForSDK.length === 0 ? `I'm feeling ${moodLabel}.` : "Tell me more.");
 
-        if (!text || text.trim().length < 5) {
-            throw new Error("Invalid or empty response");
+            if (historyForSDK.length > 0 && historyForSDK[historyForSDK.length - 1].role === 'user') {
+                const popped = historyForSDK.pop();
+                if (popped) lastUserMsg = popped.parts[0].text;
+            }
+
+            const chat = model.startChat({
+                history: historyForSDK,
+                generationConfig: {
+                    maxOutputTokens: 500,
+                    temperature: 0.7,
+                }
+            });
+
+            const result = await chat.sendMessage(lastUserMsg);
+            const response = await result.response;
+            const text = response.text();
+
+            if (!text || text.trim().length < 5) {
+                throw new Error("Invalid or empty response");
+            }
+
+            return text.trim();
+
+        } catch (error: any) {
+            const errorMsg = error?.message || "";
+            const isQuotaError = errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota');
+            const isNotFoundError = errorMsg.includes('404') || errorMsg.includes('not found');
+            const hasNextModel = i < MODEL_PRIORITY.length - 1;
+
+            if ((isQuotaError || isNotFoundError) && hasNextModel) {
+                console.warn(`### SWITCHING MODEL: ${activeModelName} failed (${errorMsg.includes('429') ? 'Quota' : '404'}). Trying ${MODEL_PRIORITY[i + 1]} ###`);
+                continue;
+            }
+
+            console.error(`### GEMINI SDK ERROR (Final Attempt: ${activeModelName}) ###`, error?.message || error);
+
+            if (!hasNextModel || (!isQuotaError && !isNotFoundError)) {
+                const fallbacks: Record<string, string> = {
+                    "default": "I'm right here with you. Let's take a slow breath together. You're doing great. [SUGGESTIONS]: Why do I feel like this? | How can I feel better? | What's a small step I can take?",
+                    "Sad": "I hear how heavy things feel. It's okay to not be okay. [SUGGESTIONS]: How can I be kind to myself? | Why is today so hard? | Can we talk about something else?",
+                    "Anxious": "Your mind is moving fast. Try counting 5 things you see. [SUGGESTIONS]: How do I stop overthinking? | Can you help me calm down? | Why do I feel so restless?",
+                };
+                return fallbacks[moodLabel] || fallbacks["default"];
+            }
         }
-
-        return text.trim();
-    } catch (error: any) {
-        console.error("### GEMINI SDK ERROR ###", error?.message || error);
-
-        // HARDCODED FALLBACKS
-        const fallbacks: Record<string, string> = {
-            "default": "I'm right here with you. Let's take a slow breath together. You're doing great. [SUGGESTIONS]: Why do I feel like this? | How can I feel better? | What's a small step I can take?",
-            "Sad": "I hear how heavy things feel. It's okay to not be okay. [SUGGESTIONS]: How can I be kind to myself? | Why is today so hard? | Can we talk about something else?",
-            "Anxious": "Your mind is moving fast. Try counting 5 things you see. [SUGGESTIONS]: How do I stop overthinking? | Can you help me calm down? | Why do I feel so restless?",
-        };
-
-        return fallbacks[moodLabel] || fallbacks["default"];
     }
+
+    return "I'm here for you. [SUGGESTIONS]: Tell me more. | Can you help? | What should I do?";
 };
 
 export const getGeminiResponse = async (apiKey: string, moodLabel: string) => {

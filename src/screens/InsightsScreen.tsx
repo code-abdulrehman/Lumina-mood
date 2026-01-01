@@ -213,7 +213,7 @@ export const InsightsScreen = () => {
                                         <View style={styles.barArea}>
                                             <View style={[styles.bar, { height: h + 4, backgroundColor: primaryColor, opacity: item.count > 0 ? 1 : 0.3 }]} />
                                         </View>
-                                        <Text style={[styles.chartDay, { color: theme.textSecondary }]}>{item.day[0]}</Text>
+                                        <Text style={[styles.chartDay, { color: theme.textSecondary }]}>{item.label}</Text>
                                     </View>
                                 );
                             })}

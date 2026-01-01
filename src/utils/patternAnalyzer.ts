@@ -1,5 +1,22 @@
 import { MoodEntry, Insight, MoodLevel } from '../types/mood';
-import { format, isWeekend, subDays, isSameDay, startOfDay, eachDayOfInterval, subMonths, isWithinInterval } from 'date-fns';
+import {
+    format,
+    isWeekend,
+    subDays,
+    isSameDay,
+    startOfDay,
+    eachDayOfInterval,
+    subMonths,
+    subYears,
+    eachWeekOfInterval,
+    eachMonthOfInterval,
+    isSameWeek,
+    isSameMonth,
+    endOfWeek,
+    endOfMonth,
+    startOfWeek,
+    startOfMonth
+} from 'date-fns';
 
 export interface MoodDistribution {
     level: MoodLevel;
@@ -8,8 +25,8 @@ export interface MoodDistribution {
     percentage: number;
 }
 
-export interface DayActivity {
-    day: string;
+export interface TrendData {
+    label: string;
     count: number;
     fullDate?: Date;
 }
@@ -36,42 +53,62 @@ export const getMoodDistribution = (moods: MoodEntry[]): MoodDistribution[] => {
         label: labels[level],
         count: counts[level] || 0,
         percentage: Math.round(((counts[level] || 0) / total) * 100)
-    })).sort((a, b) => b.count - a.count); // Sort by most frequent
+    })).sort((a, b) => b.count - a.count);
 };
 
-export const getTrendActivity = (moods: MoodEntry[], range: '7d' | '1m' | '1y' | 'all'): DayActivity[] => {
+export const getTrendActivity = (moods: MoodEntry[], range: '7d' | '1m' | '1y' | 'all'): TrendData[] => {
     const now = new Date();
-    let startDate: Date;
 
-    if (range === '7d') startDate = subDays(now, 6);
-    else if (range === '1m') startDate = subMonths(now, 1);
-    else if (range === '1y') startDate = subDays(now, 365);
-    else {
-        // For 'all', we just show the last 14 days of activity to keep the chart readable
-        startDate = subDays(now, 13);
+    if (range === '7d') {
+        const startDate = subDays(now, 6);
+        const interval = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(now) });
+        return interval.map(date => ({
+            label: format(date, 'EEE'),
+            count: moods.filter(m => isSameDay(new Date(m.timestamp), date)).length
+        }));
     }
 
-    const interval = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(now) });
+    if (range === '1m') {
+        const startDate = subMonths(now, 1);
+        const weeks = eachWeekOfInterval({ start: startDate, end: now });
+        return weeks.map((weekStart, idx) => {
+            const count = moods.filter(m => isSameWeek(new Date(m.timestamp), weekStart)).length;
+            return {
+                label: `W${idx + 1}`,
+                count: count
+            };
+        });
+    }
 
-    // For 1y, we aggregate by month maybe? No, let's keep it simple for now or limit the display.
-    // If range is 1y or 1m, we might want to show weeks/months but the user wants a chart.
-    // Let's stick to the last 7-14 points for the visual chart in those sections.
+    if (range === '1y') {
+        const startDate = subYears(now, 1);
+        const months = eachMonthOfInterval({ start: startDate, end: now });
+        return months.map(monthStart => {
+            const count = moods.filter(m => isSameMonth(new Date(m.timestamp), monthStart)).length;
+            return {
+                label: format(monthStart, 'MMM'),
+                count: count
+            };
+        });
+    }
 
-    // Actually, let's return a slice that fits the UI best.
-    const displayDays = interval.slice(-14); // Max 14 points for the bar chart
+    // For 'all', aggregate by month for the last available months (up to 12)
+    const sortedMoods = [...moods].sort((a, b) => a.timestamp - b.timestamp);
+    if (sortedMoods.length === 0) return [];
 
-    return displayDays.map(date => {
-        const count = moods.filter(m => isSameDay(new Date(m.timestamp), date)).length;
+    const firstDate = new Date(sortedMoods[0].timestamp);
+    const months = eachMonthOfInterval({ start: firstDate, end: now }).slice(-12);
+    return months.map(monthStart => {
+        const count = moods.filter(m => isSameMonth(new Date(m.timestamp), monthStart)).length;
         return {
-            day: format(date, 'EEE'),
-            fullDate: date,
-            count
+            label: format(monthStart, 'MMM'),
+            count: count
         };
     });
 };
 
 export const analyzeMoodPatterns = (moods: MoodEntry[]): Insight[] => {
-    if (moods.length < 3) return []; // Lower threshold for insights
+    if (moods.length < 3) return [];
 
     const insights: Insight[] = [];
 
