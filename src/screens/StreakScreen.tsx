@@ -6,6 +6,7 @@ import { format, subDays, addDays, isSameDay } from 'date-fns';
 import { Flame, Star, Trophy, Target, Share2, Sparkles, Award, Zap } from 'lucide-react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -38,17 +39,12 @@ export const StreakScreen = () => {
 
     const handleShareStreak = async () => {
         try {
-            const uri = await captureRef(viewShotRef, {
-                format: 'png',
-                quality: 1.0,
-            });
-
+            const uri = await captureRef(viewShotRef, { format: 'png', quality: 1.0 });
             if (Platform.OS === 'web') {
                 const text = `🔥 I've reached a ${streak}-day mindfulness streak on Lumina Mood! 🧘‍♂️✨`;
                 await Share.share({ message: text });
                 return;
             }
-
             if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(uri, {
                     mimeType: 'image/png',
@@ -63,9 +59,13 @@ export const StreakScreen = () => {
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={styles.mainContainer}>
+            {/* AMBIENT BACKGROUND */}
+            <View style={[styles.bgCircle, { backgroundColor: primaryColor + '10', top: -100, right: -100 }]} />
+            <View style={[styles.bgCircle, { backgroundColor: primaryColor + '05', bottom: -50, left: -50, width: 400, height: 400 }]} />
+
             <ScrollView
-                contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 }]}
+                contentContainerStyle={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.header}>
@@ -73,18 +73,16 @@ export const StreakScreen = () => {
                     <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Your daily emotional persistence.</Text>
                 </View>
 
-                {/* PREMIUM STREAK CARD WRAPPED IN VIEWSHOT */}
+                {/* PREMIUM STREAK CARD */}
                 <View style={styles.cardWrapper}>
                     <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
-                        <View style={[styles.streakCard, { backgroundColor: primaryColor, borderRadius: 36 }]}>
+                        <View style={[styles.streakCard, { backgroundColor: primaryColor, borderRadius: 32 }]}>
                             <View style={[styles.circleOverlay, { top: -40, left: -40 }]} />
-                            <View style={[styles.circleOverlay, { bottom: -60, right: -40, width: 150, height: 150, opacity: 0.1 }]} />
-
                             <View style={styles.cardHeader}>
                                 <View style={styles.badgeWrapper}>
                                     <View style={styles.miniBadge}>
                                         <Award size={10} color={primaryColor} />
-                                        <Text style={[styles.miniBadgeText, { color: primaryColor }]}>Verified</Text>
+                                        <Text style={[styles.miniBadgeText, { color: primaryColor }]}>Neural Core</Text>
                                     </View>
                                 </View>
                                 <Sparkles size={24} color="#FFF" opacity={0.6} />
@@ -98,13 +96,13 @@ export const StreakScreen = () => {
                                 </View>
                                 <View style={styles.streakTextGroup}>
                                     <Text style={styles.streakNumber}>{streak}</Text>
-                                    <Text style={styles.streakLabel}>Day Ritual</Text>
+                                    <Text style={styles.streakLabel}>Day Streak</Text>
                                 </View>
                             </View>
 
                             <View style={styles.cardFooter}>
                                 <View style={styles.footerBranding}>
-                                    <Text style={styles.brandingText}>LUMINA MOOD</Text>
+                                    <Text style={styles.brandingText}>LUMINA NEURAL</Text>
                                     <View style={styles.dot} />
                                     <Text style={styles.brandingText}>{format(new Date(), 'yyyy')}</Text>
                                 </View>
@@ -117,21 +115,21 @@ export const StreakScreen = () => {
                 <View style={styles.actionRow}>
                     <TouchableOpacity
                         onPress={handleShareStreak}
-                        style={[styles.actionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+                        style={[styles.actionBtn, { backgroundColor: primaryColor }]}
                     >
-                        <Share2 size={18} color={primaryColor} />
-                        <Text style={[styles.actionBtnText, { color: primaryColor }]}>Export Achievement</Text>
+                        <Share2 size={18} color="#FFF" />
+                        <Text style={[styles.actionBtnText, { color: '#FFF' }]}>Export Achievement</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* UNIQUE VERTICAL PILL TRACKER - REDESIGNED */}
+                {/* WEEKLY PERSISTENCE - GLASS */}
                 <View style={styles.timelineSection}>
                     <View style={styles.sectionHeader}>
                         <Zap size={18} color={primaryColor} />
                         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Weekly Persistence</Text>
                     </View>
 
-                    <View style={[styles.pillBoard, { backgroundColor: theme.card, borderRadius: 32 }]}>
+                    <BlurView intensity={40} tint="light" style={[styles.pillBoard, { borderColor: theme.glassBorder }]}>
                         {timelineDays.map((day, index) => {
                             const active = hasMoodOnDay(day);
                             const isToday = index === 3;
@@ -140,45 +138,44 @@ export const StreakScreen = () => {
                                 <View key={index} style={styles.pillCol}>
                                     <View style={[
                                         styles.pillContainer,
-                                        { backgroundColor: theme.border + '15', borderColor: active ? primaryColor : 'transparent' }
+                                        { backgroundColor: theme.darkGlass, borderColor: active ? primaryColor : 'transparent' }
                                     ]}>
                                         <View style={[styles.pillFill, { backgroundColor: active ? primaryColor : "transparent" }]}>
                                             <Flame
                                                 size={16}
-                                                color={active ? "#FFF" : theme.textSecondary + '40'}
+                                                color={active ? "#FFF" : theme.textSecondary + '20'}
                                                 fill={active ? "#FFF" : "transparent"}
                                             />
                                         </View>
                                         <Text style={[
                                             styles.pillDate,
-                                            { color: active ? primaryColor : theme.textSecondary },
-                                            active && { marginBottom: 4 }
+                                            { color: active ? primaryColor : theme.textSecondary }
                                         ]}>
                                             {format(day, 'd')}
                                         </Text>
                                     </View>
                                     <Text style={[
                                         styles.pillDayName,
-                                        { color: isToday ? primaryColor : theme.textSecondary, fontWeight: isToday ? '900' : '600' }
+                                        { color: isToday ? primaryColor : theme.textSecondary, fontWeight: isToday ? '900' : '700' }
                                     ]}>
                                         {format(day, 'EEE')[0]}
                                     </Text>
                                 </View>
                             );
                         })}
-                    </View>
+                    </BlurView>
                 </View>
 
-                {/* STATS OVERVIEW */}
+                {/* STATS OVERVIEW - GLASS */}
                 <View style={styles.statsRow}>
-                    <View style={[styles.statBox, { backgroundColor: theme.card, borderRadius: 24 }]}>
+                    <BlurView intensity={30} tint="light" style={[styles.statBox, { borderColor: theme.glassBorder }]}>
                         <Text style={[styles.statValue, { color: theme.text }]}>{moods.length}</Text>
                         <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total Logs</Text>
-                    </View>
-                    <View style={[styles.statBox, { backgroundColor: theme.card, borderRadius: 24 }]}>
+                    </BlurView>
+                    <BlurView intensity={30} tint="light" style={[styles.statBox, { borderColor: theme.glassBorder }]}>
                         <Text style={[styles.statValue, { color: theme.text }]}>Lv. {Math.ceil(moods.length / 5)}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Habit Score</Text>
-                    </View>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Focus Score</Text>
+                    </BlurView>
                 </View>
             </ScrollView>
         </View>
@@ -186,18 +183,19 @@ export const StreakScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1 },
+    mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+    bgCircle: { position: 'absolute', width: 300, height: 300, borderRadius: 150, zIndex: -1 },
     container: { paddingHorizontal: 20 },
     header: { marginBottom: 24 },
-    title: { fontSize: 34, fontWeight: '900' },
-    subtitle: { fontSize: 15, fontWeight: '500' },
-    cardWrapper: { marginBottom: 20, borderRadius: 36, overflow: 'hidden' },
+    title: { fontSize: 34, fontWeight: '900', letterSpacing: -1 },
+    subtitle: { fontSize: 15, fontWeight: '600', opacity: 0.7 },
+    cardWrapper: { marginBottom: 28, borderRadius: 32, overflow: 'hidden' },
     streakCard: { padding: 30, position: 'relative', overflow: 'hidden' },
-    circleOverlay: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFF', opacity: 0.1 },
+    circleOverlay: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: '#FFF', opacity: 0.1 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
     badgeWrapper: { flexDirection: 'row' },
-    miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' },
-    miniBadgeText: { fontSize: 10, fontWeight: '900', marginLeft: 4, textTransform: 'uppercase' },
+    miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
+    miniBadgeText: { fontSize: 9, fontWeight: '900', marginLeft: 4, textTransform: 'uppercase' },
     streakContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 35 },
     outerRing: { width: 100, height: 100, borderRadius: 50, borderWidth: 8, borderColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 25 },
     innerRing: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
@@ -206,53 +204,49 @@ const styles = StyleSheet.create({
     streakLabel: { fontSize: 16, fontWeight: '800', color: '#FFF', textTransform: 'uppercase', letterSpacing: 2, opacity: 0.8 },
     cardFooter: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 20, alignItems: 'center' },
     footerBranding: { flexDirection: 'row', alignItems: 'center' },
-    brandingText: { fontSize: 11, fontWeight: '900', color: '#FFF', letterSpacing: 1.5, opacity: 0.7 },
-    dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#FFF', marginHorizontal: 8, opacity: 0.7 },
+    brandingText: { fontSize: 11, fontWeight: '900', color: '#FFF', letterSpacing: 2, opacity: 0.8 },
+    dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFF', marginHorizontal: 10, opacity: 0.8 },
 
-    actionRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 32 },
-    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 20, borderWidth: 1 },
-    actionBtnText: { fontSize: 14, fontWeight: '800', marginLeft: 10 },
+    actionRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 36 },
+    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 24 },
+    actionBtnText: { fontSize: 15, fontWeight: '900', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 1 },
 
     timelineSection: { marginBottom: 32 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingLeft: 4 },
-    sectionTitle: { fontSize: 12, fontWeight: '900', marginLeft: 8, textTransform: 'uppercase', letterSpacing: 1 },
-
-    // UNIQUE PILL BOARD DESIGN
+    sectionTitle: { fontSize: 12, fontWeight: '900', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 1.5 },
     pillBoard: {
-        paddingVertical: 28,
-        paddingHorizontal: 12,
+        paddingVertical: 32,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
+        borderRadius: 28,
+        borderWidth: 1,
+        overflow: 'hidden',
     },
     pillCol: { alignItems: 'center', flex: 1 },
     pillContainer: {
-        width: 32,
-        height: 80,
-        borderRadius: 16,
+        width: 34,
+        height: 86,
+        borderRadius: 17,
         justifyContent: 'flex-end',
         alignItems: 'center',
         padding: 4,
-        marginBottom: 10,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: 'transparent',
     },
     pillFill: {
         width: '100%',
         height: '65%',
-        borderRadius: 12,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
     },
-    pillDate: { fontSize: 12, fontWeight: '900', marginTop: 4 },
-    pillDayName: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
+    pillDate: { fontSize: 12, fontWeight: '900', marginTop: 6 },
+    pillDayName: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5 },
 
     statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    statBox: { flex: 1, paddingVertical: 24, marginHorizontal: 5, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
-    statValue: { fontSize: 26, fontWeight: '900', marginBottom: 4 },
-    statLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }
+    statBox: { flex: 1, paddingVertical: 28, marginHorizontal: 6, alignItems: 'center', borderRadius: 28, borderWidth: 1, overflow: 'hidden' },
+    statValue: { fontSize: 28, fontWeight: '900', marginBottom: 4 },
+    statLabel: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 }
 });

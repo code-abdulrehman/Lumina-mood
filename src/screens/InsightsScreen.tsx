@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Share, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Share, Alert, Platform, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMood } from '../context/MoodContext';
 import { analyzeMoodPatterns, getMoodDistribution, getTrendActivity } from '../utils/patternAnalyzer';
@@ -9,6 +9,7 @@ import { MOOD_CONFIGS } from '../data/moods';
 import { subDays, subMonths, subYears, isAfter, isToday, format, startOfToday } from 'date-fns';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -20,29 +21,22 @@ export const InsightsScreen = () => {
     const [range, setRange] = useState<FilterRange>('7d');
     const reportRef = useRef(null);
 
-    // 1. FILTERED DATA (CRITICAL: All components must rely on this)
     const filteredMoods = useMemo(() => {
         const now = new Date();
         let cutoff: Date | null = null;
-
         if (range === '7d') cutoff = subDays(now, 7);
         else if (range === '1m') cutoff = subMonths(now, 1);
         else if (range === '1y') cutoff = subYears(now, 1);
-
         if (!cutoff) return moods;
         return moods.filter(m => isAfter(new Date(m.timestamp), cutoff!));
     }, [moods, range]);
 
-    // 2. DERIVED ANALYTICS
     const reportData = useMemo(() => {
         if (filteredMoods.length === 0) return null;
-
         const dist = getMoodDistribution(filteredMoods);
         const topMood = dist[0];
-        const moodConfig = MOOD_CONFIGS.find(c => c.label === topMood?.level);
-
+        const moodConfig = MOOD_CONFIGS.find(c => c.level === topMood?.level);
         const rangeLabel = range === '7d' ? '7-Day' : range === '1m' ? 'Monthly' : range === '1y' ? 'Yearly' : 'All-Time';
-
         return {
             title: `${rangeLabel} Pulse`,
             summary: `${filteredMoods.length} entries recorded.`,
@@ -59,17 +53,12 @@ export const InsightsScreen = () => {
 
     const handleShareReport = async () => {
         try {
-            const uri = await captureRef(reportRef, {
-                format: 'png',
-                quality: 1.0,
-            });
-
+            const uri = await captureRef(reportRef, { format: 'png', quality: 1.0 });
             if (Platform.OS === 'web') {
                 const text = `📊 My Lumina ${reportData?.title}\n${reportData?.summary}\nMood: ${reportData?.mainMoodLabel}`;
                 await Share.share({ message: text });
                 return;
             }
-
             if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(uri, {
                     mimeType: 'image/png',
@@ -87,8 +76,7 @@ export const InsightsScreen = () => {
             onPress={() => setRange(value)}
             style={[
                 styles.filterBtn,
-                { backgroundColor: range === value ? primaryColor : theme.card },
-                range === value ? styles.filterBtnActive : { borderColor: theme.border, borderWidth: 1 }
+                range === value ? { backgroundColor: primaryColor } : { backgroundColor: theme.darkGlass }
             ]}
         >
             <Text style={[
@@ -99,43 +87,44 @@ export const InsightsScreen = () => {
     );
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={styles.mainContainer}>
+            {/* AMBIENT BACKGROUND */}
+            <View style={[styles.bgCircle, { backgroundColor: primaryColor + '10', top: -100, right: -100 }]} />
+            <View style={[styles.bgCircle, { backgroundColor: primaryColor + '05', bottom: -50, left: -50, width: 400, height: 400 }]} />
+
             <ScrollView
-                contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 }]}
+                onScroll={(e) => { }}
+                contentContainerStyle={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: theme.text }]}>Insights</Text>
-                    <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Patterns focused on your persistence.</Text>
+                    <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Neural patterns & emotional intelligence.</Text>
                 </View>
 
                 {/* RANGE FILTERS */}
-                <View style={styles.filterRow}>
+                <BlurView intensity={30} tint="light" style={[styles.filterRow, { borderColor: theme.glassBorder }]}>
                     <FilterBtn label="7D" value="7d" />
                     <FilterBtn label="1M" value="1m" />
                     <FilterBtn label="1Y" value="1y" />
                     <FilterBtn label="All" value="all" />
-                </View>
+                </BlurView>
 
-                {/* PREMIUM ANALYTICS CARD (STREAK-LIKE DESIGN) */}
+                {/* PREMIUM ANALYTICS CARD */}
                 {reportData && (
                     <View style={styles.cardWrapper}>
                         <ViewShot ref={reportRef} options={{ format: 'png', quality: 1.0 }}>
-                            <View style={[styles.premiumCard, { backgroundColor: primaryColor, borderRadius: 36 }]}>
-                                {/* Visual Overlays */}
+                            <View style={[styles.premiumCard, { backgroundColor: primaryColor, borderRadius: 32 }]}>
                                 <View style={[styles.circleOverlay, { top: -40, left: -40 }]} />
-                                <View style={[styles.circleOverlay, { bottom: -60, right: -40, width: 150, height: 150, opacity: 0.1 }]} />
-
                                 <View style={styles.cardTop}>
                                     <View style={styles.badgeRow}>
                                         <View style={styles.miniBadge}>
                                             <Award size={10} color={primaryColor} />
-                                            <Text style={[styles.miniBadgeText, { color: primaryColor }]}>Verified</Text>
+                                            <Text style={[styles.miniBadgeText, { color: primaryColor }]}>Neural Verfied</Text>
                                         </View>
                                     </View>
                                     <Sparkles size={24} color="#FFF" opacity={0.6} />
                                 </View>
-
                                 <View style={styles.cardMainContent}>
                                     <View style={styles.statGlowRing}>
                                         <View style={styles.statInnerCircle}>
@@ -147,10 +136,9 @@ export const InsightsScreen = () => {
                                         <Text style={styles.primaryMoodText}>{reportData.mainMoodLabel}</Text>
                                     </View>
                                 </View>
-
                                 <View style={styles.cardBottom}>
                                     <View style={styles.brandingRow}>
-                                        <Text style={styles.brandTag}>LUMINA MOOD</Text>
+                                        <Text style={styles.brandTag}>LUMINA NEURAL</Text>
                                         <View style={styles.brandDot} />
                                         <Text style={styles.brandDate}>{reportData.dateRange}</Text>
                                     </View>
@@ -167,18 +155,18 @@ export const InsightsScreen = () => {
                         activeOpacity={0.8}
                     >
                         <Share2 size={18} color="#FFF" />
-                        <Text style={styles.shareActionText}>Export {range === '7d' ? '7D' : range.toUpperCase()} Report</Text>
+                        <Text style={styles.shareActionText}>Export Intelligence</Text>
                     </TouchableOpacity>
                 )}
 
-                {/* MOOD DISTRIBUTION - STRONGLY FILTERED */}
+                {/* MOOD DISTRIBUTION - GLASS */}
                 {filteredMoods.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHead}>
                             <PieChart size={18} color={primaryColor} />
-                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood Distribution ({range.toUpperCase()})</Text>
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Distribution</Text>
                         </View>
-                        <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
+                        <BlurView intensity={40} tint="light" style={[styles.contentBox, { borderColor: theme.glassBorder }]}>
                             {distribution.map((item, idx) => {
                                 const config = MOOD_CONFIGS.find(c => c.level === item.level);
                                 return (
@@ -187,24 +175,24 @@ export const InsightsScreen = () => {
                                             <Text style={[styles.labelMain, { color: theme.text }]}>{config?.label}</Text>
                                             <Text style={[styles.labelSub, { color: theme.textSecondary }]}>{item.percentage}%</Text>
                                         </View>
-                                        <View style={[styles.barBg, { backgroundColor: theme.border }]}>
+                                        <View style={[styles.barBg, { backgroundColor: theme.darkGlass }]}>
                                             <View style={[styles.barFill, { width: `${item.percentage}%`, backgroundColor: config?.color }]} />
                                         </View>
                                     </View>
                                 );
                             })}
-                        </View>
+                        </BlurView>
                     </View>
                 )}
 
-                {/* ACTIVITY FLOW - STRONGLY FILTERED */}
+                {/* ACTIVITY FLOW - GLASS */}
                 {filteredMoods.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHead}>
                             <Calendar size={18} color={primaryColor} />
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Activity Flow</Text>
                         </View>
-                        <View style={[styles.contentBox, styles.chartBox, { backgroundColor: theme.card }]}>
+                        <BlurView intensity={40} tint="light" style={[styles.contentBox, styles.chartBox, { borderColor: theme.glassBorder }]}>
                             {trendData.map((item, idx) => {
                                 const max = Math.max(...trendData.map(d => d.count)) || 1;
                                 const h = (item.count / max) * 70;
@@ -217,14 +205,11 @@ export const InsightsScreen = () => {
                                     </View>
                                 );
                             })}
-                        </View>
-                        <Text style={[styles.helperText, { color: theme.textSecondary }]}>
-                            Displaying recent activity patterns for the selected period.
-                        </Text>
+                        </BlurView>
                     </View>
                 )}
 
-                {/* INSIGHTS - STRONGLY FILTERED */}
+                {/* INSIGHTS */}
                 {filteredMoods.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHead}>
@@ -236,17 +221,17 @@ export const InsightsScreen = () => {
                                 <InsightCard key={index} insight={insight} />
                             ))
                         ) : (
-                            <View style={[styles.contentBox, { padding: 24, backgroundColor: theme.card }]}>
-                                <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Keep logging to see "{range.toUpperCase()}" patterns.</Text>
-                            </View>
+                            <BlurView intensity={40} tint="light" style={[styles.contentBox, { padding: 30, borderColor: theme.glassBorder }]}>
+                                <Text style={{ color: theme.textSecondary, textAlign: 'center', fontWeight: '600' }}>Logging patterns pending...</Text>
+                            </BlurView>
                         )}
                     </View>
                 )}
 
                 {filteredMoods.length === 0 && (
                     <View style={styles.empty}>
-                        <BrainCircuit size={64} color={theme.border} style={{ marginBottom: 16 }} />
-                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No mood entries found for the {range.toUpperCase()} range.</Text>
+                        <BrainCircuit size={80} color={theme.border} style={{ marginBottom: 16 }} />
+                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Journal currently empty for this period.</Text>
                     </View>
                 )}
             </ScrollView>
@@ -255,31 +240,29 @@ export const InsightsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1 },
+    mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+    bgCircle: { position: 'absolute', width: 300, height: 300, borderRadius: 150, zIndex: -1 },
     container: { paddingHorizontal: 20 },
     header: { marginBottom: 24 },
-    title: { fontSize: 32, fontWeight: '900' },
-    subtitle: { fontSize: 15, fontWeight: '500' },
+    title: { fontSize: 34, fontWeight: '900', letterSpacing: -1 },
+    subtitle: { fontSize: 15, fontWeight: '600', opacity: 0.7 },
     filterRow: {
         flexDirection: 'row',
-        marginBottom: 24,
-        backgroundColor: '#F3F4F6',
-        padding: 4,
-        borderRadius: 20,
+        marginBottom: 28,
+        padding: 6,
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
     },
-    filterBtn: { flex: 1, paddingVertical: 8, borderRadius: 16, alignItems: 'center' },
-    filterBtnActive: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-    filterText: { fontSize: 12, fontWeight: '800' },
-
-    // PREMIUM STREAK-STYLE CARD
-    cardWrapper: { marginBottom: 20, borderRadius: 36, overflow: 'hidden' },
+    filterBtn: { flex: 1, paddingVertical: 10, borderRadius: 18, alignItems: 'center' },
+    filterText: { fontSize: 13, fontWeight: '800' },
+    cardWrapper: { marginBottom: 20, borderRadius: 32, overflow: 'hidden' },
     premiumCard: { padding: 30, position: 'relative', overflow: 'hidden' },
-    circleOverlay: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFF', opacity: 0.1 },
+    circleOverlay: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: '#FFF', opacity: 0.1 },
     cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
     badgeRow: { flexDirection: 'row' },
-    miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' },
-    miniBadgeText: { fontSize: 10, fontWeight: '900', marginLeft: 4, textTransform: 'uppercase' },
-
+    miniBadge: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
+    miniBadgeText: { fontSize: 9, fontWeight: '900', marginLeft: 4, textTransform: 'uppercase' },
     cardMainContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
     statGlowRing: {
         width: 86,
@@ -301,37 +284,30 @@ const styles = StyleSheet.create({
     },
     statBigNumber: { fontSize: 32, fontWeight: '900', color: '#FFF' },
     reportTextGroup: { flex: 1 },
-    reportRangeTitle: { fontSize: 13, fontWeight: '800', color: '#FFF', opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 },
-    primaryMoodText: { fontSize: 24, fontWeight: '900', color: '#FFF' },
-
+    reportRangeTitle: { fontSize: 12, fontWeight: '800', color: '#FFF', opacity: 0.7, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 },
+    primaryMoodText: { fontSize: 26, fontWeight: '900', color: '#FFF' },
     cardBottom: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 20 },
     brandingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-    brandTag: { fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 1.5, opacity: 0.7 },
-    brandDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#FFF', marginHorizontal: 8, opacity: 0.7 },
-    brandDate: { fontSize: 10, fontWeight: '800', color: '#FFF', opacity: 0.7 },
-
-    shareAction: { height: 56, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-    shareActionText: { color: '#FFF', fontSize: 15, fontWeight: '800', marginLeft: 10 },
-
-    section: { marginBottom: 32 },
-    sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingLeft: 4 },
-    sectionTitle: { fontSize: 12, fontWeight: '900', marginLeft: 8, textTransform: 'uppercase', letterSpacing: 1 },
-    contentBox: { borderRadius: 24, padding: 20 },
-
-    barContainer: { marginBottom: 12 },
-    barLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    labelMain: { fontSize: 13, fontWeight: '700' },
-    labelSub: { fontSize: 13, fontWeight: '700' },
-    barBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
-    barFill: { height: '100%', borderRadius: 3 },
-
-    chartBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 140 },
+    brandTag: { fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 2, opacity: 0.8 },
+    brandDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFF', marginHorizontal: 10, opacity: 0.8 },
+    brandDate: { fontSize: 10, fontWeight: '800', color: '#FFF', opacity: 0.8 },
+    shareAction: { height: 60, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+    shareActionText: { color: '#FFF', fontSize: 15, fontWeight: '900', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 1 },
+    section: { marginBottom: 36 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingLeft: 4 },
+    sectionTitle: { fontSize: 12, fontWeight: '900', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 1.5 },
+    contentBox: { borderRadius: 28, padding: 24, borderWidth: 1, overflow: 'hidden' },
+    barContainer: { marginBottom: 16 },
+    barLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    labelMain: { fontSize: 14, fontWeight: '800' },
+    labelSub: { fontSize: 14, fontWeight: '800' },
+    barBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
+    barFill: { height: '100%', borderRadius: 4 },
+    chartBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 160 },
     chartCol: { alignItems: 'center', flex: 1 },
-    barArea: { height: 80, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
-    bar: { width: 10, borderRadius: 5 },
-    chartDay: { marginTop: 10, fontSize: 11, fontWeight: '800' },
-
-    helperText: { fontSize: 11, marginTop: 12, fontStyle: 'italic', textAlign: 'center' },
-    empty: { marginTop: 40, alignItems: 'center' },
-    emptyText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 40 }
+    barArea: { height: 100, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
+    bar: { width: 12, borderRadius: 6 },
+    chartDay: { marginTop: 12, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+    empty: { marginTop: 80, alignItems: 'center' },
+    emptyText: { fontSize: 16, fontWeight: '600', textAlign: 'center', paddingHorizontal: 60, lineHeight: 24 }
 });

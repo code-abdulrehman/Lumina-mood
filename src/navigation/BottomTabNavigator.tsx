@@ -1,56 +1,61 @@
 import React from 'react';
-import { Platform } from 'react-native';
-import { useMood } from '../context/MoodContext';
+import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { useMood } from '../context/MoodContext';
 import { HomeScreen } from '../screens/HomeScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
 import { StreakScreen } from '../screens/StreakScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { Home, BarChart2, History, Flame, Settings } from 'lucide-react-native';
+import {
+    Home,
+    BarChart2,
+    Flame,
+    Settings
+} from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator();
 
-export const TabNavigator = () => {
-    const insets = useSafeAreaInsets();
-    const { primaryColor } = useMood();
+export const BottomTabNavigator = () => {
+    const { primaryColor, theme } = useMood();
 
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#ffffff',
+                    position: 'absolute',
+                    backgroundColor: 'transparent',
                     borderTopWidth: 0,
-                    elevation: 10,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: -4 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 10,
-                    // Use automatic height with padding from insets
-                    height: (Platform.OS === 'ios' ? 55 : 60) + insets.bottom,
-                    paddingBottom: insets.bottom || 10,
-                    paddingTop: 10,
+                    elevation: 0,
+                    height: Platform.OS === 'ios' ? 85 : 65,
                 },
+                tabBarBackground: () => (
+                    <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+                ),
                 tabBarActiveTintColor: primaryColor,
-                tabBarInactiveTintColor: '#9CA3AF',
+                tabBarInactiveTintColor: theme.textSecondary,
                 tabBarLabelStyle: {
                     fontSize: 10,
-                    fontWeight: '700',
-                    marginBottom: Platform.OS === 'android' ? 5 : 0,
+                    fontWeight: '800',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: Platform.OS === 'ios' ? 0 : 8,
                 },
+                tabBarItemStyle: {
+                    paddingTop: 8,
+                }
             }}
         >
             <Tab.Screen
-                name="Home"
+                name="Workspace"
                 component={HomeScreen}
                 options={{
                     tabBarIcon: ({ color }) => <Home size={22} color={color} />,
                 }}
             />
             <Tab.Screen
-                name="Streak"
+                name="Rituals"
                 component={StreakScreen}
                 options={{
                     tabBarIcon: ({ color }) => <Flame size={22} color={color} />,
@@ -61,13 +66,6 @@ export const TabNavigator = () => {
                 component={InsightsScreen}
                 options={{
                     tabBarIcon: ({ color }) => <BarChart2 size={22} color={color} />,
-                }}
-            />
-            <Tab.Screen
-                name="History"
-                component={HistoryScreen}
-                options={{
-                    tabBarIcon: ({ color }) => <History size={22} color={color} />,
                 }}
             />
             <Tab.Screen

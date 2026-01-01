@@ -12,6 +12,9 @@ export interface Theme {
     border: string;
     radius: number;
     radiusLarge: number;
+    glassBackground: string;
+    glassBorder: string;
+    darkGlass: string;
 }
 
 interface MoodContextType {
@@ -39,13 +42,16 @@ export const MoodProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const theme: Theme = {
         primary: primaryColor,
-        background: '#FFFFFF',
-        card: '#F9FAFB',
-        text: '#111827',
-        textSecondary: '#6B7280',
-        border: '#E5E7EB',
-        radius: 12,
-        radiusLarge: 24,
+        background: '#F8FAFC',
+        card: '#FFFFFF',
+        text: '#1E293B',
+        textSecondary: '#64748B',
+        border: '#E2E8F0',
+        radius: 16,
+        radiusLarge: 28,
+        glassBackground: 'rgba(255, 255, 255, 0.7)',
+        glassBorder: 'rgba(255, 255, 255, 0.3)',
+        darkGlass: 'rgba(15, 23, 42, 0.05)',
     };
 
     const loadData = async () => {
@@ -90,24 +96,22 @@ export const MoodProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const addMood = async (level: any, iconName: string, label: string) => {
         const today = new Date().setHours(0, 0, 0, 0);
 
-        // Check for existing same-mood entry today
         const existingEntry = moods.find(m => {
             const mDate = new Date(m.timestamp).setHours(0, 0, 0, 0);
             return mDate === today && m.label === label;
         });
 
         if (existingEntry) {
-            return existingEntry; // Reuse existing chat
+            return existingEntry;
         }
 
-        // Check 5-chat limit for today
         const todaysEntries = moods.filter(m => {
             const mDate = new Date(m.timestamp).setHours(0, 0, 0, 0);
             return mDate === today;
         });
 
         if (todaysEntries.length >= 5) {
-            Alert.alert("Limit Reached", "You can only track 5 different moods per day. Try deleting an old mood to add a new one.");
+            Alert.alert("Limit Reached", "You can only track 5 different moods per day.");
             return null;
         }
 

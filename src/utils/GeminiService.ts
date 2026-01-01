@@ -11,7 +11,9 @@ export interface ChatMessage {
  * Verified Model IDs from Google AI Documentation (Jan 2026).
  */
 const MODEL_PRIORITY = [
-    "gemini-2.0-flash-exp",   // Newer, high-performance experimental model with high free-tier limits
+    "gemini-2.0-flash-exp",
+    // Newer, high-performance experimental model with high free-tier limits
+    "gemini-3-flash-preview",
     "gemini-1.5-flash",       // Stable standard flash model
     "gemini-1.5-flash-8b",    // Smaller, high-speed model
     "gemini-1.5-pro",         // More complex model
