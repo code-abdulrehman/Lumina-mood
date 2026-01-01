@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mood-tracker",
-    "slug": "mood-tracker",
+    "name": "Lumina Mood",
+    "slug": "lumina-mood",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
