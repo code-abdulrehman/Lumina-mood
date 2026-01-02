@@ -39,7 +39,8 @@ export const InsightsScreen = () => {
         const dist = getMoodDistribution(filteredMoods);
         const topMood = dist[0];
         const moodConfig = MOOD_CONFIGS.find(c => c.level === topMood?.level);
-        const topMoodConfigs = dist.slice(0, 3).map(d => MOOD_CONFIGS.find(c => c.level === d.level)).filter(Boolean);
+        const activeDist = dist.filter(d => d.count > 0);
+        const topMoodConfigs = activeDist.slice(0, 3).map(d => MOOD_CONFIGS.find(c => c.level === d.level)).filter(Boolean);
         const rangeLabel = range === '7d' ? '7-Day' : range === '1m' ? 'Monthly' : range === '1y' ? 'Yearly' : 'All-Time';
         return {
             title: `${rangeLabel} Pulse`,
@@ -199,7 +200,7 @@ export const InsightsScreen = () => {
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood Distribution</Text>
                         </View>
                         <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
-                            {distribution.slice(0, showAllDistribution ? undefined : 5).map((item, idx) => {
+                            {distribution.filter(d => d.count > 0).map((item, idx) => {
                                 const config = MOOD_CONFIGS.find(c => c.level === item.level);
                                 return (
                                     <View key={idx} style={styles.barContainer}>
