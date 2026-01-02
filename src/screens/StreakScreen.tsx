@@ -70,7 +70,7 @@ export const StreakScreen = () => {
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.mainContainer, { backgroundColor: 'transparent' }]}>
             <ScrollView
                 contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
@@ -362,6 +362,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
     },
     pillCol: { alignItems: 'center', flex: 1 },
     pillContainer: {
@@ -389,18 +394,28 @@ const styles = StyleSheet.create({
     pillDate: { fontSize: 12, fontWeight: '900', marginTop: 4 },
     pillDayName: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
 
-    pixelSection: { marginBottom: 32 },
+    pixelSection: { marginBottom: 32},
     pixelHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingLeft: 4 },
     headerTitleRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginLeft: 8 },
-    monthControls: { flexDirection: 'row', alignItems: 'center' },
+    monthControls: { flexDirection: 'row', alignItems: 'center'
+     },
     navBtn: { padding: 4 },
-    monthLabel: { fontSize: 13, fontWeight: '800', marginHorizontal: 12, textTransform: 'uppercase', letterSpacing: 1 },
-    pixelGrid: { padding: 15, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
+    monthLabel: { width: 80, fontSize: 13, fontWeight: '800', marginHorizontal: 12, textTransform: 'uppercase', letterSpacing: 1 },
+    pixelGrid: { padding: 15, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start',  shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1, },
     pixelBox: { width: (SCREEN_WIDTH - 70) / 7 - 4, height: (SCREEN_WIDTH - 70) / 7 - 4, margin: 2, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     pixelDateNum: { fontSize: 9, fontWeight: '700' },
 
     statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    statBox: { flex: 1, paddingVertical: 24, marginHorizontal: 5, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' },
+    statBox: { flex: 1, paddingVertical: 24, marginHorizontal: 5, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1, },
     statValue: { fontSize: 26, fontWeight: '900', marginBottom: 4 },
     statLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }
 });

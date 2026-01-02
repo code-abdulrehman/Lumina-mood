@@ -115,7 +115,7 @@ export const InsightsScreen = () => {
     );
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.mainContainer, { backgroundColor: 'transparent' }]}>
             <ScrollView
                 contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
@@ -200,7 +200,7 @@ export const InsightsScreen = () => {
                             <PieChart size={18} color={primaryColor} />
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood Distribution</Text>
                         </View>
-                        <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
+                        <View style={[styles.contentBox, styles.barCard, { backgroundColor: theme.card }]}>
                             {distribution.filter(d => d.count > 0).map((item, idx) => {
                                 const config = MOOD_CONFIGS.find(c => c.level === item.level);
                                 return (
@@ -235,7 +235,7 @@ export const InsightsScreen = () => {
                                 const config = MOOD_CONFIGS.find(c => c.level === item.moodLevel);
                                 return (
                                     <View key={idx} style={styles.chartCol}>
-                                        <View style={[styles.timeBarBg, { backgroundColor: theme.border, height: 80, width: 10 }]}>
+                                        <View style={[styles.timeBarBg, styles.barCard, { backgroundColor: theme.border, height: 80, width: 10 }]}>
                                             <View style={[
                                                 styles.timeBarFill,
                                                 { height: `${fill * 100}%`, backgroundColor: config?.color || theme.border, opacity: item.count > 0 ? 1 : 0.3 }
@@ -255,7 +255,7 @@ export const InsightsScreen = () => {
                             <Clock size={18} color={primaryColor} />
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood by Time</Text>
                         </View>
-                        <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
+                        <View style={[styles.contentBox, styles.barCard, { backgroundColor: theme.card }]}>
                             <View style={styles.timeRow}>
                                 {timeOfDayData.map((item, idx) => {
                                     const max = Math.max(...timeOfDayData.map(d => d.count)) || 1;
@@ -286,7 +286,9 @@ export const InsightsScreen = () => {
                         </View>
                         {insights.length > 0 ? (
                             insights.map((insight, index) => (
-                                <InsightCard key={index} insight={insight} />
+                                <View>
+                                    <InsightCard key={index} insight={insight} />
+                                </View>
                             ))
                         ) : (
                             <View style={[styles.contentBox, { padding: 24, backgroundColor: theme.card }]}>
@@ -376,7 +378,13 @@ const styles = StyleSheet.create({
         opacity: 0.8,
         letterSpacing: 0.5,
     },
-
+    barCard: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
+    },
     heroSection: {
         alignItems: 'center',
         marginBottom: 15,

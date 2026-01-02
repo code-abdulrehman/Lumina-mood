@@ -16,7 +16,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
     const today = format(new Date(), 'MMM d, yyyy');
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <View style={[styles.container, { backgroundColor: theme.card }]}>
             <View style={styles.glow} />
             <View style={styles.content}>
                 <View style={styles.header}>
@@ -84,6 +84,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         overflow: 'hidden',
         position: 'relative',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
     },
     glow: {
         position: 'absolute',

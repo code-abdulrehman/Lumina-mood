@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMood } from '../context/MoodContext';
+import { MeshBackground } from '../components/MeshBackground';
 import { ChevronRight, Music, Video, BookOpen, Newspaper, Gamepad2, Pizza, TreePalm, Dumbbell, Sparkles, Key, ExternalLink, AlertCircle, X } from 'lucide-react-native';
 import { validateApiKey } from '../utils/GeminiService';
 import { Alert, Linking, ActivityIndicator, Keyboard } from 'react-native';
@@ -306,34 +307,36 @@ export const OnboardingScreen = () => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-            <View style={styles.progressContainer}>
-                {[1, 2, 3, 4].map((s) => (
-                    <View
-                        key={s}
-                        style={[
-                            styles.progressBar,
-                            {
-                                backgroundColor: s <= step ? theme.primary : theme.border,
-                                flex: 1,
-                                height: 4,
-                                marginHorizontal: 2,
-                                borderRadius: 2
-                            }
-                        ]}
-                    />
-                ))}
+        <MeshBackground>
+            <View style={[styles.container, { backgroundColor: 'transparent', paddingTop: insets.top }]}>
+                <View style={styles.progressContainer}>
+                    {[1, 2, 3, 4].map((s) => (
+                        <View
+                            key={s}
+                            style={[
+                                styles.progressBar,
+                                {
+                                    backgroundColor: s <= step ? theme.primary : theme.border,
+                                    flex: 1,
+                                    height: 4,
+                                    marginHorizontal: 2,
+                                    borderRadius: 2
+                                }
+                            ]}
+                        />
+                    ))}
+                </View>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {step === 1 && renderStep1()}
+                    {step === 2 && renderStep2()}
+                    {step === 3 && renderStep3()}
+                    {step === 4 && renderStep4()}
+                </ScrollView>
             </View>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-                {step === 3 && renderStep3()}
-                {step === 4 && renderStep4()}
-            </ScrollView>
-        </View>
+        </MeshBackground>
     );
 };
 

@@ -343,7 +343,7 @@ export const HomeScreen = () => {
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.mainContainer, { backgroundColor: 'transparent' }]}>
             {/* STICKY TOP HEADER */}
             <View style={[styles.stickyHeader, { paddingTop: insets.top + 10, borderBottomColor: theme.border }]}>
                 <View style={[styles.headerRow, { alignItems: 'center' }]}>
@@ -431,14 +431,14 @@ export const HomeScreen = () => {
                                                 activeOpacity={0.8}
                                                 style={[
                                                     styles.circularMoodBtn,
-                                                    { backgroundColor: config.color }
+                                                    { backgroundColor: config.color+"0" }
                                                 ]}
                                                 onPress={() => handleMoodSelect(config)}
                                             >
                                                 <Animated.View style={{ transform: [{ rotate: inverseSpin }] }}>
                                                     <MoodIcon
                                                         iconName={config.icon}
-                                                        size={32}
+                                                        size={48}
                                                         color="#fff"
                                                         customImage={config.customImage}
                                                         strokeWidth={3}
@@ -532,7 +532,6 @@ export const HomeScreen = () => {
                     {
                         borderTopColor: theme.border,
                         paddingBottom: Math.max(insets.bottom, 8),
-                        backgroundColor: selectedMood ? 'transparent' : theme.background,
                         borderTopWidth: selectedMood ? 0 : 0,
                         paddingHorizontal: selectedMood ? 0 : 20,
                         paddingTop: selectedMood ? 0 : 12,
@@ -572,17 +571,6 @@ export const HomeScreen = () => {
                                     );
                                 })}
                             </Animated.View>
-                            {/* Enhanced DIY Edge Fades */}
-                            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row', zIndex: 2 }} pointerEvents="none">
-                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background }} />
-                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background, opacity: 0.6 }} />
-                                <View style={{ width: 10, height: '100%', backgroundColor: theme.background, opacity: 0.3 }} />
-                            </View>
-                            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, flexDirection: 'row-reverse', zIndex: 2 }} pointerEvents="none">
-                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background }} />
-                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background, opacity: 0.6 }} />
-                                <View style={{ width: 10, height: '100%', backgroundColor: theme.background, opacity: 0.3 }} />
-                            </View>
                         </View>
                     )}
 
@@ -627,7 +615,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     stickyHeader: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         paddingHorizontal: 20,
         paddingBottom: 15,
         zIndex: 10,
@@ -663,19 +650,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#F97316',
     },
-    moodBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        marginTop: 5,
-    },
-    moodBarText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFF',
-        marginLeft: 10,
-    },
     chatScroll: {
         flex: 1,
     },
@@ -706,11 +680,6 @@ const styles = StyleSheet.create({
         borderRadius: 35,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 6,
     },
     centerDecor: {
         position: 'absolute',

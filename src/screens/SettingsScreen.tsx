@@ -111,7 +111,7 @@ export const SettingsScreen = () => {
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background, paddingTop: insets.top || 20 }]}>
+        <View style={[styles.mainContainer, { backgroundColor: 'transparent', paddingTop: insets.top || 20 }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -344,10 +344,10 @@ const styles = StyleSheet.create({
     card: {
         padding: 30,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
         marginBottom: 24,
     },
     cardHeader: {

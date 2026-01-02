@@ -59,7 +59,7 @@ export const HistoryScreen = () => {
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.mainContainer, { backgroundColor: 'transparent' }]}>
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                     <Text style={[styles.title, { color: theme.text }]}>History</Text>
@@ -186,6 +186,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 5,
         marginLeft: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
     },
     emptyState: {
         flex: 1,

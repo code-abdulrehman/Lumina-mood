@@ -1,9 +1,9 @@
 import React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Platform } from 'react-native';
 import { useMood } from '../context/MoodContext';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View } from 'react-native';
+import { MeshBackground } from '../components/MeshBackground';
 import { HomeScreen } from '../screens/HomeScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
@@ -17,12 +17,13 @@ export const TabNavigator = () => {
     const { primaryColor, theme } = useMood();
 
     return (
-        <View style={[{ flex: 1, backgroundColor: theme.background}]}>
+        <MeshBackground>
             <Tab.Navigator
                 screenOptions={{
                     headerShown: false,
+                    sceneStyle: { backgroundColor: 'transparent' },
                     tabBarStyle: {
-                        backgroundColor: theme.card,
+                        backgroundColor: theme.background,
                         borderTopLeftRadius: 40,
                         borderTopRightRadius: 40,
                         borderTopWidth: 0,
@@ -81,8 +82,6 @@ export const TabNavigator = () => {
                     }}
                 />
             </Tab.Navigator>
-
-
-        </View >
+        </MeshBackground>
     );
 };
