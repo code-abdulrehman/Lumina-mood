@@ -1,4 +1,4 @@
-export type MoodLevel = 'awesome' | 'great' | 'good' | 'neutral' | 'down' | 'unhappy' | 'awful';
+export type MoodLevel = 'awesome' | 'great' | 'good' | 'neutral' | 'down' | 'unhappy' | 'awful' | 'loved' | 'blessed' | 'joyful' | 'angry' | 'scared' | 'confused' | 'hot' | 'hugging' | 'woozy';
 
 export interface ChatMessage {
     role: 'user' | 'model';
@@ -32,4 +32,6 @@ export interface Insight {
     title: string;
     description: string;
     type: 'pattern' | 'frequency' | 'time';
+    moodLevel?: MoodLevel;
+    topMoods?: MoodLevel[];
 }

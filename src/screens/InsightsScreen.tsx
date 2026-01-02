@@ -2,10 +2,12 @@ import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Share, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMood } from '../context/MoodContext';
+import { MoodLevel } from '../types/mood';
 import { analyzeMoodPatterns, getMoodDistribution, getTrendActivity } from '../utils/patternAnalyzer';
 import { InsightCard } from '../components/InsightCard';
-import { BrainCircuit, TrendingUp, Calendar, PieChart, FileText, Share2, Sparkles, CheckCircle2, Zap, Award } from 'lucide-react-native';
+import { BrainCircuit, TrendingUp, Calendar, PieChart, FileText, Share2, Sparkles, CheckCircle2, Zap, Award, LayoutGrid, Clock } from 'lucide-react-native';
 import { MOOD_CONFIGS } from '../data/moods';
+import MoodIcon from '../components/MoodIcon';
 import { subDays, subMonths, subYears, isAfter, isToday, format, startOfToday } from 'date-fns';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -20,6 +22,7 @@ export const InsightsScreen = () => {
     const [range, setRange] = useState<FilterRange>('7d');
     const reportRef = useRef(null);
     const shareRef = useRef(null);
+    const [showAllDistribution, setShowAllDistribution] = useState(false);
 
     // 1. FILTERED DATA (CRITICAL: All components must rely on this)
     const filteredMoods = useMemo(() => {
@@ -40,7 +43,10 @@ export const InsightsScreen = () => {
 
         const dist = getMoodDistribution(filteredMoods);
         const topMood = dist[0];
-        const moodConfig = MOOD_CONFIGS.find(c => c.label === topMood?.level);
+        const moodConfig = MOOD_CONFIGS.find(c => c.level === topMood?.level);
+
+        // Get top 3 configurations for the stack
+        const topMoodConfigs = dist.slice(0, 3).map(d => MOOD_CONFIGS.find(c => c.level === d.level)).filter(Boolean);
 
         const rangeLabel = range === '7d' ? '7-Day' : range === '1m' ? 'Monthly' : range === '1y' ? 'Yearly' : 'All-Time';
 
@@ -50,13 +56,46 @@ export const InsightsScreen = () => {
             count: filteredMoods.length,
             mainMoodLabel: topMood?.label || 'Steady',
             mainMoodColor: moodConfig?.color || primaryColor,
-            dateRange: range === 'all' ? 'Universal History' : `${format(subDays(new Date(), range === '7d' ? 7 : range === '1m' ? 30 : range === '1y' ? 365 : 0), 'MMM d')} — Present`
+            topConfig: moodConfig,
+            topMoodConfigs: topMoodConfigs,
+            dateRange: range === 'all' ? 'Universal History' : `${format(subDays(startOfToday(), range === '7d' ? 7 : range === '1m' ? 30 : range === '1y' ? 365 : 0), 'MMM d')} — Present`
         };
     }, [filteredMoods, range, primaryColor]);
 
     const insights = useMemo(() => analyzeMoodPatterns(filteredMoods), [filteredMoods]);
     const distribution = useMemo(() => getMoodDistribution(filteredMoods), [filteredMoods]);
     const trendData = useMemo(() => getTrendActivity(filteredMoods, range), [filteredMoods, range]);
+
+    const timeOfDayData = useMemo(() => {
+        const buckets: Record<string, { count: number, moods: MoodLevel[] }> = {
+            morning: { count: 0, moods: [] },
+            afternoon: { count: 0, moods: [] },
+            evening: { count: 0, moods: [] },
+            night: { count: 0, moods: [] }
+        };
+
+        filteredMoods.forEach(m => {
+            const hour = new Date(m.timestamp).getHours();
+            let key = 'night';
+            if (hour >= 5 && hour < 12) key = 'morning';
+            else if (hour >= 12 && hour < 17) key = 'afternoon';
+            else if (hour >= 17 && hour < 21) key = 'evening';
+
+            buckets[key].count++;
+            buckets[key].moods.push(m.level);
+        });
+
+        return Object.entries(buckets).map(([key, data]) => {
+            const counts = data.moods.reduce((acc, m) => {
+                const moodKey = m as string;
+                acc[moodKey] = (acc[moodKey] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+            const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const dominant = sortedCounts.length > 0 ? sortedCounts[0][0] as MoodLevel : undefined;
+            return { label: key, count: data.count, moodLevel: dominant };
+        });
+    }, [filteredMoods]);
 
     const handleShareReport = async () => {
         try {
@@ -138,14 +177,65 @@ export const InsightsScreen = () => {
                                 </View>
 
                                 <View style={styles.cardMainContent}>
-                                    <View style={styles.statGlowRing}>
-                                        <View style={styles.statInnerCircle}>
-                                            <Text style={styles.statBigNumber}>{reportData.count}</Text>
-                                        </View>
+                                    <View style={styles.topMoodsTContainer}>
+                                        {reportData.topMoodConfigs && reportData.topMoodConfigs.length > 0 ? (
+                                            reportData.topMoodConfigs.length === 1 ? (
+                                                <View style={styles.singleMoodCenter}>
+                                                    <MoodIcon
+                                                        iconName={reportData.topMoodConfigs[0]?.icon || ''}
+                                                        size={64}
+                                                        color="#FFF"
+                                                        customImage={reportData.topMoodConfigs[0]?.customImage}
+                                                    />
+                                                </View>
+                                            ) : (
+                                                <View style={styles.triLayout}>
+                                                    {/* Top Mood */}
+                                                    <View style={styles.triTop}>
+                                                        <MoodIcon
+                                                            iconName={reportData.topMoodConfigs[0]?.icon || ''}
+                                                            size={48}
+                                                            color="#FFF"
+                                                            customImage={reportData.topMoodConfigs[0]?.customImage}
+                                                        />
+                                                    </View>
+                                                    <View style={styles.triBottomRow}>
+                                                        {/* Left Bottom */}
+                                                        <View style={styles.triBottomIcon}>
+                                                            <MoodIcon
+                                                                iconName={reportData.topMoodConfigs[1]?.icon || ''}
+                                                                size={48}
+                                                                color="#FFF"
+                                                                customImage={reportData.topMoodConfigs[1]?.customImage}
+                                                            />
+                                                        </View>
+                                                        {/* Right Bottom */}
+                                                        {reportData.topMoodConfigs[2] && (
+                                                            <View style={styles.triBottomIcon}>
+                                                                <MoodIcon
+                                                                    iconName={reportData.topMoodConfigs[2]?.icon || ''}
+                                                                    size={48}
+                                                                    color="#FFF"
+                                                                    customImage={reportData.topMoodConfigs[2]?.customImage}
+                                                                />
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </View>
+                                            )
+                                        ) : (
+                                            <Sparkles size={48} color="#FFF" opacity={0.6} />
+                                        )}
                                     </View>
                                     <View style={styles.reportTextGroup}>
                                         <Text style={styles.reportRangeTitle}>{reportData.title}</Text>
-                                        <Text style={styles.primaryMoodText}>{reportData.mainMoodLabel}</Text>
+                                        <View style={styles.moodImageLineRow}>
+                                            <Text style={styles.primaryMoodText}>{reportData.mainMoodLabel}</Text>
+                                            <View style={styles.horizontalMoodLine} />
+                                            <View style={styles.countBadge}>
+                                                <Text style={styles.countBadgeText}>{reportData.count} Logs</Text>
+                                            </View>
+                                        </View>
                                     </View>
                                 </View>
 
@@ -180,12 +270,15 @@ export const InsightsScreen = () => {
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood Distribution ({range.toUpperCase()})</Text>
                         </View>
                         <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
-                            {distribution.map((item, idx) => {
+                            {distribution.slice(0, showAllDistribution ? undefined : 5).map((item, idx) => {
                                 const config = MOOD_CONFIGS.find(c => c.level === item.level);
                                 return (
                                     <View key={idx} style={styles.barContainer}>
                                         <View style={styles.barLabels}>
-                                            <Text style={[styles.labelMain, { color: theme.text }]}>{config?.label}</Text>
+                                            <View style={styles.barLabelRow}>
+                                                <MoodIcon iconName={config?.icon || ''} size={18} color={theme.text} customImage={config?.customImage} />
+                                                <Text style={[styles.labelMain, { color: theme.text }]}>{config?.label}</Text>
+                                            </View>
                                             <Text style={[styles.labelSub, { color: theme.textSecondary }]}>{item.percentage}%</Text>
                                         </View>
                                         <View style={[styles.barBg, { backgroundColor: theme.border }]}>
@@ -194,6 +287,16 @@ export const InsightsScreen = () => {
                                     </View>
                                 );
                             })}
+                            {distribution.length > 5 && (
+                                <TouchableOpacity
+                                    onPress={() => setShowAllDistribution(!showAllDistribution)}
+                                    style={styles.seeMoreBtn}
+                                >
+                                    <Text style={[styles.seeMoreText, { color: primaryColor }]}>
+                                        {showAllDistribution ? 'See Less' : `See ${distribution.length - 5} More`}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 )}
@@ -209,15 +312,57 @@ export const InsightsScreen = () => {
                             {trendData.map((item, idx) => {
                                 const max = Math.max(...trendData.map(d => d.count)) || 1;
                                 const h = (item.count / max) * 70;
+                                const config = MOOD_CONFIGS.find(c => c.level === item.moodLevel);
                                 return (
                                     <View key={idx} style={styles.chartCol}>
                                         <View style={styles.barArea}>
-                                            <View style={[styles.bar, { height: h + 4, backgroundColor: primaryColor, opacity: item.count > 0 ? 1 : 0.3 }]} />
+                                            <View style={[
+                                                styles.bar,
+                                                {
+                                                    height: h + 4,
+                                                    backgroundColor: config?.color || theme.border,
+                                                    opacity: item.count > 0 ? 1 : 0.3
+                                                }
+                                            ]} />
                                         </View>
                                         <Text style={[styles.chartDay, { color: theme.textSecondary }]}>{item.label}</Text>
                                     </View>
                                 );
                             })}
+                        </View>
+                    </View>
+                )}
+
+                {/* MOOD BY TIME - STRONGLY FILTERED */}
+                {filteredMoods.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHead}>
+                            <Clock size={18} color={primaryColor} />
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Mood by Time</Text>
+                        </View>
+                        <View style={[styles.contentBox, { backgroundColor: theme.card }]}>
+                            <View style={styles.timeRow}>
+                                {timeOfDayData.map((item, idx) => {
+                                    const max = Math.max(...timeOfDayData.map(d => d.count)) || 1;
+                                    const fill = (item.count / max);
+                                    const config = MOOD_CONFIGS.find(c => c.level === item.moodLevel);
+                                    return (
+                                        <View key={idx} style={styles.timeCol}>
+                                            <View style={[styles.timeBarBg, { backgroundColor: theme.border }]}>
+                                                <View style={[
+                                                    styles.timeBarFill,
+                                                    {
+                                                        height: `${fill * 100}%`,
+                                                        backgroundColor: config?.color || theme.border,
+                                                        opacity: item.count > 0 ? 1 : 0.3
+                                                    }
+                                                ]} />
+                                            </View>
+                                            <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>{item.label.charAt(0).toUpperCase()}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
                         </View>
                     </View>
                 )}
@@ -279,29 +424,46 @@ const styles = StyleSheet.create({
     miniBadgeText: { fontSize: 10, fontWeight: '900', marginLeft: 4, textTransform: 'uppercase' },
 
     cardMainContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-    statGlowRing: {
-        width: 86,
-        height: 86,
-        borderRadius: 43,
-        borderWidth: 6,
-        borderColor: 'rgba(255,255,255,0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 24,
-    },
-    statInnerCircle: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+    topMoodsTContainer: {
+        width: 120,
+        height: 120,
+        marginRight: 5,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    statBigNumber: { fontSize: 32, fontWeight: '900', color: '#FFF' },
+    singleMoodCenter: {
+        width: 100,
+        height: 100,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    triLayout: {
+        width: 120,
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    triTop: {
+        marginBottom: 2,
+    },
+    triBottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    triBottomIcon: {
+        marginHorizontal: 2,
+    },
     reportTextGroup: { flex: 1 },
-    reportRangeTitle: { fontSize: 13, fontWeight: '800', color: '#FFF', opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 },
-    primaryMoodText: { fontSize: 24, fontWeight: '900', color: '#FFF' },
-
+    reportRangeTitle: { fontSize: 13, fontWeight: '800', color: '#FFF', opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 },
+    moodImageLineRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+    horizontalMoodLine: { width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.3)', marginHorizontal: 15 },
+    primaryMoodText: { fontSize: 26, fontWeight: '900', color: '#FFF' },
+    countBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+    countBadgeText: { fontSize: 10, fontWeight: '900', color: '#FFF', textTransform: 'uppercase' },
+    seeMoreBtn: { marginTop: 15, paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
+    seeMoreText: { fontSize: 13, fontWeight: '800' },
+    barLabelRow: { flexDirection: 'row', alignItems: 'center' },
     cardBottom: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 20 },
     brandingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
     brandTag: { fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 1.5, opacity: 0.7 },
@@ -323,13 +485,50 @@ const styles = StyleSheet.create({
     barBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
     barFill: { height: '100%', borderRadius: 3 },
 
+    pixelGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        padding: 15,
+    },
     chartBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 140 },
     chartCol: { alignItems: 'center', flex: 1 },
     barArea: { height: 80, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
     bar: { width: 10, borderRadius: 5 },
     chartDay: { marginTop: 10, fontSize: 11, fontWeight: '800' },
-
-    helperText: { fontSize: 11, marginTop: 12, fontStyle: 'italic', textAlign: 'center' },
+    pixel: {
+        width: (SCREEN_WIDTH - 100) / 10,
+        height: (SCREEN_WIDTH - 100) / 10,
+        margin: 2,
+        borderRadius: 4,
+    },
+    timeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'flex-end',
+        height: 100,
+    },
+    timeCol: {
+        alignItems: 'center',
+    },
+    timeBarBg: {
+        width: 12,
+        height: 60,
+        backgroundColor: '#eee',
+        borderRadius: 6,
+        overflow: 'hidden',
+        justifyContent: 'flex-end',
+    },
+    timeBarFill: {
+        width: '100%',
+        borderRadius: 6,
+    },
+    timeLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        marginTop: 8,
+    },
+    helperText: { fontSize: 11, marginTop: 12, fontStyle: 'italic', textAlign: 'center', paddingHorizontal: 20 },
     empty: { marginTop: 40, alignItems: 'center' },
     emptyText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 40 }
 });

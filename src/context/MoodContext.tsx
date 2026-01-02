@@ -100,14 +100,14 @@ export const MoodProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return existingEntry; // Reuse existing chat
         }
 
-        // Check 7-chat limit for today (matching total available moods)
+        // Check 16-chat limit for today (matching total available moods)
         const todaysEntries = moods.filter(m => {
             const mDate = new Date(m.timestamp).setHours(0, 0, 0, 0);
             return mDate === today;
         });
 
-        if (todaysEntries.length >= 7) {
-            Alert.alert("Limit Reached", "You can only track 7 different moods per day. Try deleting an old mood to add a new one.");
+        if (todaysEntries.length >= 16) {
+            Alert.alert("Limit Reached", "You can only track 16 different moods per day. Try deleting an old mood to add a new one.");
             return null;
         }
 

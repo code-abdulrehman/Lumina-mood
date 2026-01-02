@@ -12,7 +12,10 @@ import {
     Platform,
     Alert,
     Share,
-    Keyboard
+    Keyboard,
+    Animated,
+    Easing,
+    PanResponder
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Icons from 'lucide-react-native';
@@ -59,6 +62,173 @@ export const HomeScreen = () => {
     const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+    const rotation = useRef(new Animated.Value(0)).current;
+    const footerScroll = useRef(new Animated.Value(0)).current;
+    const lastAngle = useRef(0);
+    const rotationOffset = useRef(0);
+    const containerRef = useRef<View>(null);
+    const containerCenter = useRef({ x: 0, y: 0 });
+    const autoSpinDirection = useRef(1); // 1 for clockwise, -1 for counter
+
+    useEffect(() => {
+        if (!selectedMood) {
+            startAutoSpin();
+        } else {
+            rotation.stopAnimation();
+            startFooterAnimation();
+        }
+    }, [selectedMood]);
+
+    const startAutoSpin = (startVal?: number) => {
+        rotation.stopAnimation();
+        const currentVal = startVal !== undefined ? startVal : (rotation as any)._value || 0;
+
+        Animated.timing(rotation, {
+            toValue: currentVal + (360 * autoSpinDirection.current),
+            duration: 40000,
+            easing: Easing.linear,
+            useNativeDriver: true,
+        }).start(({ finished }) => {
+            if (finished && !selectedMood) {
+                startAutoSpin(currentVal + (360 * autoSpinDirection.current));
+            }
+        });
+    };
+
+    const footerScrollOffset = useRef(0);
+
+    const startFooterAnimation = (startVal?: number) => {
+        footerScroll.stopAnimation();
+        const currentVal = startVal !== undefined ? startVal : (footerScroll as any)._value || 0;
+        const setWidth = MOOD_CONFIGS.length * 52;
+
+        // Normalize to middle set area (using 10 sets, so middle is around -5*setWidth)
+        let normalizedStart = currentVal;
+        while (normalizedStart < -6 * setWidth) normalizedStart += setWidth;
+        while (normalizedStart > -5 * setWidth) normalizedStart -= setWidth;
+        footerScroll.setValue(normalizedStart);
+
+        Animated.timing(footerScroll, {
+            toValue: normalizedStart - setWidth,
+            duration: 25000,
+            easing: Easing.linear,
+            useNativeDriver: true,
+        }).start(({ finished }) => {
+            if (finished && selectedMood) {
+                startFooterAnimation(normalizedStart - setWidth);
+            }
+        });
+    };
+
+    const circlePanResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (evt) => {
+                rotation.stopAnimation();
+                const { pageX, pageY } = evt.nativeEvent;
+                const dx = pageX - containerCenter.current.x;
+                const dy = pageY - containerCenter.current.y;
+                lastAngle.current = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                // Get current visible rotation value
+                rotation.addListener(({ value }) => {
+                    rotationOffset.current = value;
+                });
+                rotation.removeListener(''); // Just to trigger getter if needed, but better to use listener properly
+            },
+            onPanResponderMove: (evt) => {
+                const { pageX, pageY } = evt.nativeEvent;
+                const dx = pageX - containerCenter.current.x;
+                const dy = pageY - containerCenter.current.y;
+                let currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                let delta = currentAngle - lastAngle.current;
+                // Handle wrap around
+                if (delta > 180) delta -= 360;
+                if (delta < -180) delta += 360;
+
+                rotationOffset.current += delta;
+                rotation.setValue(rotationOffset.current);
+                lastAngle.current = currentAngle;
+            },
+            onPanResponderRelease: (evt, gestureState) => {
+                const { vx, vy } = gestureState;
+                const { pageX, pageY } = evt.nativeEvent;
+
+                // Calculate angular velocity: (x*vy - y*vx) / r^2
+                const x = pageX - containerCenter.current.x;
+                const y = pageY - containerCenter.current.y;
+                const r2 = x * x + y * y;
+                const angularVelocity = ((x * vy - y * vx) / r2) * (180 / Math.PI) * 1000; // Degrees per second
+
+                if (Math.abs(angularVelocity) > 10) {
+                    autoSpinDirection.current = angularVelocity > 0 ? 1 : -1;
+                    Animated.decay(rotation, {
+                        velocity: angularVelocity / 1000, // Velocity in units per ms
+                        deceleration: 0.995,
+                        useNativeDriver: true,
+                    }).start(({ finished }) => {
+                        if (finished && !selectedMood) {
+                            startAutoSpin();
+                        }
+                    });
+                } else {
+                    startAutoSpin();
+                }
+            },
+        })
+    ).current;
+
+    const footerPanResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+                footerScroll.stopAnimation();
+                const currentVal = (footerScroll as any)._value || 0;
+                const setWidth = MOOD_CONFIGS.length * 52;
+
+                // Jump to middle set area for maximum headroom in both directions (10 sets)
+                let normalizedStart = currentVal;
+                while (normalizedStart < -6 * setWidth) normalizedStart += setWidth;
+                while (normalizedStart > -5 * setWidth) normalizedStart -= setWidth;
+
+                footerScroll.setValue(normalizedStart);
+                footerScrollOffset.current = normalizedStart;
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const newVal = footerScrollOffset.current + gestureState.dx;
+                footerScroll.setValue(newVal);
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                if (Math.abs(gestureState.vx) > 0.1) {
+                    Animated.decay(footerScroll, {
+                        velocity: gestureState.vx,
+                        deceleration: 0.995,
+                        useNativeDriver: true,
+                    }).start(({ finished }) => {
+                        if (finished && selectedMood) {
+                            startFooterAnimation();
+                        }
+                    });
+                } else {
+                    startFooterAnimation();
+                }
+            },
+        })
+    ).current;
+
+    const spin = rotation.interpolate({
+        inputRange: [-360000, 360000], // Large range to handle multiple spins
+        outputRange: ['-360000deg', '360000deg'],
+    });
+
+    const inverseSpin = rotation.interpolate({
+        inputRange: [-360000, 360000],
+        outputRange: ['360000deg', '-360000deg'],
+    });
 
     const scrollRef = useRef<ScrollView>(null);
     const inputRef = useRef<TextInput>(null);
@@ -219,9 +389,69 @@ export const HomeScreen = () => {
                     keyboardShouldPersistTaps="handled"
                 >
                     {!selectedMood ? (
-                        <View style={styles.emptyState}>
-                            <BrainCircuit size={80} color={theme.border} style={{ marginBottom: 20 }} />
-                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Track your mood to start a new journey of awareness.</Text>
+                        <View style={styles.initialState}>
+                            <Animated.View
+                                {...circlePanResponder.panHandlers}
+                                onLayout={(e) => {
+                                    const { x, y, width, height } = e.nativeEvent.layout;
+                                    // Note: we need page coordinates, but for a centered item this approximation works
+                                    // Better to use measureInWindow in a real hook but this is a good start.
+                                    containerCenter.current = {
+                                        x: SCREEN_WIDTH / 2,
+                                        y: y + height / 2 + (Platform.OS === 'ios' ? 120 : 100) // Adjustment for header
+                                    };
+                                }}
+                                style={[
+                                    styles.circleContainer,
+                                    { transform: [{ rotate: spin }] }
+                                ]}
+                            >
+                                {MOOD_CONFIGS.map((config, index) => {
+                                    const angle = (index / MOOD_CONFIGS.length) * 2 * Math.PI;
+                                    const radius = SCREEN_WIDTH * 0.35;
+                                    const x = Math.cos(angle) * radius;
+                                    const y = Math.sin(angle) * radius;
+
+                                    return (
+                                        <View
+                                            key={config.level}
+                                            style={[
+                                                styles.circularMoodBtnContainer,
+                                                {
+                                                    left: (SCREEN_WIDTH * 0.8) / 2 - 35 + x,
+                                                    top: (SCREEN_WIDTH * 0.8) / 2 - 35 + y,
+                                                }
+                                            ]}
+                                        >
+                                            <TouchableOpacity
+                                                activeOpacity={0.8}
+                                                style={[
+                                                    styles.circularMoodBtn,
+                                                    { backgroundColor: config.color }
+                                                ]}
+                                                onPress={() => handleMoodSelect(config)}
+                                            >
+                                                <Animated.View style={{ transform: [{ rotate: inverseSpin }] }}>
+                                                    <MoodIcon
+                                                        iconName={config.icon}
+                                                        size={32}
+                                                        color="#fff"
+                                                        customImage={config.customImage}
+                                                        strokeWidth={3}
+                                                    />
+                                                </Animated.View>
+                                            </TouchableOpacity>
+                                        </View>
+                                    );
+                                })}
+                                <Animated.View style={[styles.centerDecor, { transform: [{ rotate: inverseSpin }] }]}>
+                                    <Sparkles size={40} color={theme.primary} />
+                                    <Text style={[styles.centerText, { color: theme.textSecondary }]}>How's Life?</Text>
+                                </Animated.View>
+                            </Animated.View>
+                            <Text style={[styles.initialHint, { color: theme.textSecondary }]}>
+                                How are you feeling today?
+                            </Text>
                         </View>
                     ) : (
                         <View style={styles.chatList}>
@@ -231,9 +461,23 @@ export const HomeScreen = () => {
                                     msg.role === 'user' ? styles.userBubble : [styles.modelCard, { borderColor: theme.border, borderRadius: theme.radiusLarge }],
                                 ]}>
                                     {msg.role === 'model' && (
-                                        <View style={styles.modelHeader}>
-                                            <Sparkles size={16} color={theme.primary} />
-                                            <Text style={[styles.modelTitle, { color: theme.primary }]}>AI Companion</Text>
+                                        <View style={styles.modelHeaderContainer}>
+                                            <View style={styles.modelHeader}>
+                                                <Sparkles size={16} color={theme.primary} />
+                                                <Text style={[styles.modelTitle, { color: theme.primary }]}>AI Companion</Text>
+                                            </View>
+                                            {msg.role === 'model' && (
+                                                <TouchableOpacity
+                                                    style={styles.copyBtn}
+                                                    onPress={() => handleCopy(msg.text, idx)}
+                                                >
+                                                    {copiedIndex === idx ? (
+                                                        <Check size={16} color={theme.primary} />
+                                                    ) : (
+                                                        <Copy size={16} color={theme.textSecondary} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
                                     )}
                                     <MarkdownText
@@ -244,18 +488,7 @@ export const HomeScreen = () => {
                                             msg.role === 'user' ? styles.userText : { color: theme.text }
                                         ]}
                                     />
-                                    {msg.role === 'model' && (
-                                        <TouchableOpacity
-                                            style={styles.copyBtn}
-                                            onPress={() => handleCopy(msg.text, idx)}
-                                        >
-                                            {copiedIndex === idx ? (
-                                                <Check size={16} color={theme.primary} />
-                                            ) : (
-                                                <Copy size={16} color={theme.textSecondary} />
-                                            )}
-                                        </TouchableOpacity>
-                                    )}
+
                                 </View>
                             ))}
 
@@ -290,47 +523,66 @@ export const HomeScreen = () => {
                 </ScrollView>
 
                 {/* FOOTER BAR */}
-                <View style={[styles.footerContainer, { borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 15) }]}>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.moodSelectorScroll}
-                    >
-                        {MOOD_CONFIGS.map((config) => {
-                            const isSelected = selectedMood?.level === config.level;
-                            return (
-                                <TouchableOpacity
-                                    key={config.level}
-                                    style={styles.moodItemContainer}
-                                    onPress={() => handleMoodSelect(config)}
-                                >
-                                    <View style={[
-                                        styles.moodIconBtn,
-                                        {
-                                            backgroundColor: isSelected ? config.color : theme.card,
-                                            borderRadius: theme.radius * 1.5,
-                                            borderColor: isSelected ? config.color : theme.border,
-                                            borderWidth: isSelected ? 0 : 1
-                                        }
-                                    ]}>
-                                        <MoodIcon
-                                            iconName={config.icon}
-                                            size={28}
-                                            color={isSelected ? "#fff" : config.color}
-                                            customImage={config.customImage}
-                                            strokeWidth={2.5}
-                                        />
-                                    </View>
-                                    <Text style={[
-                                        styles.moodLabel,
-                                        { color: isSelected ? config.color : theme.textSecondary }
-                                    ]}>
-                                        {config.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
+                <View style={[
+                    styles.footerContainer,
+                    {
+                        borderTopColor: theme.border,
+                        paddingBottom: Math.max(insets.bottom, 15),
+                        backgroundColor: selectedMood ? 'transparent' : theme.background,
+                        borderTopWidth: selectedMood ? 0 : 1,
+                        paddingHorizontal: selectedMood ? 0 : 20,
+                        paddingTop: selectedMood ? 0 : 12,
+                        elevation: selectedMood ? 0 : 10,
+                        shadowOpacity: selectedMood ? 0 : 0.05,
+                    }
+                ]}>
+                    {selectedMood && (
+                        <View
+                            style={styles.infiniteFooterWrapper}
+                            {...footerPanResponder.panHandlers}
+                        >
+                            <Animated.View style={[
+                                styles.infiniteFooterScroll,
+                                { transform: [{ translateX: footerScroll }] }
+                            ]}>
+                                {[...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS, ...MOOD_CONFIGS].map((config, index) => {
+                                    const isSelected = selectedMood?.level === config.level;
+                                    return (
+                                        <TouchableOpacity
+                                            key={`${config.level}-${index}`}
+                                            style={[
+                                                styles.compactMoodBtn,
+                                                {
+                                                    opacity: isSelected ? 1 : 0.6,
+                                                    transform: [{ scale: isSelected ? 1.1 : 0.9 }]
+                                                }
+                                            ]}
+                                            onPress={() => handleMoodSelect(config)}
+                                        >
+                                            <MoodIcon
+                                                iconName={config.icon}
+                                                size={22}
+                                                color={config.color}
+                                                customImage={config.customImage}
+                                                strokeWidth={isSelected ? 3 : 2}
+                                            />
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </Animated.View>
+                            {/* Enhanced DIY Edge Fades */}
+                            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row', zIndex: 2 }} pointerEvents="none">
+                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background }} />
+                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background, opacity: 0.6 }} />
+                                <View style={{ width: 10, height: '100%', backgroundColor: theme.background, opacity: 0.3 }} />
+                            </View>
+                            <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, flexDirection: 'row-reverse', zIndex: 2 }} pointerEvents="none">
+                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background }} />
+                                <View style={{ width: 15, height: '100%', backgroundColor: theme.background, opacity: 0.6 }} />
+                                <View style={{ width: 10, height: '100%', backgroundColor: theme.background, opacity: 0.3 }} />
+                            </View>
+                        </View>
+                    )}
 
                     {/* Chat Input Bar */}
                     {selectedMood && apiKey && (
@@ -429,17 +681,50 @@ const styles = StyleSheet.create({
         paddingTop: 20,
         paddingBottom: 80,
     },
-    emptyState: {
+    initialState: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 100,
+        minHeight: SCREEN_WIDTH * 1.2,
     },
-    emptyText: {
+    circleContainer: {
+        width: SCREEN_WIDTH * 0.8,
+        height: SCREEN_WIDTH * 0.8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    circularMoodBtnContainer: {
+        position: 'absolute',
+        width: 70,
+        height: 70,
+    },
+    circularMoodBtn: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    centerDecor: {
+        position: 'absolute',
+        alignItems: 'center',
+    },
+    centerText: {
         fontSize: 16,
-        textAlign: 'center',
-        paddingHorizontal: 40,
-        lineHeight: 24,
+        fontWeight: '800',
+        marginTop: 8,
+        opacity: 0.5,
+    },
+    initialHint: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 40,
+        opacity: 0.7,
     },
     chatList: {
         paddingHorizontal: 20,
@@ -488,6 +773,11 @@ const styles = StyleSheet.create({
         padding: 8,
         marginTop: 5,
     },
+    modelHeaderContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     quickQuestionsContainer: {
         marginTop: 10,
         marginBottom: 20,
@@ -533,31 +823,28 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 10,
     },
-    moodSelectorScroll: {
+    compactMoodScroll: {
         paddingVertical: 10,
-        paddingHorizontal: 5,
-    },
-    moodItemContainer: {
+        paddingHorizontal: 10,
         alignItems: 'center',
-        marginHorizontal: 8,
     },
-    moodIconBtn: {
-        width: 60,
-        height: 60,
+    compactMoodBtn: {
+        width: 44,
+        height: 44,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
+        marginHorizontal: 4,
     },
-    moodLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        marginTop: 6,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    infiniteFooterWrapper: {
+        overflow: 'hidden',
+        width: '100%',
+        height: 60,
+        justifyContent: 'center',
+    },
+    infiniteFooterScroll: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
     },
     inputBar: {
         flexDirection: 'row',
