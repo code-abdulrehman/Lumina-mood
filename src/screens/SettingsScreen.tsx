@@ -320,7 +320,7 @@ export const SettingsScreen = () => {
                             </Text>
                         </View>
 
-                        <View style={styles.footer}>
+                        <View style={[styles.footer, { marginBottom: 134 }]}>
                             <Text style={[styles.versionText, { color: theme.textSecondary }]}>Lumina Mood v1.4.0</Text>
                         </View>
                     </ScrollView>
@@ -517,6 +517,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         padding: 24,
         alignItems: 'flex-start',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
     },
     infoText: {
         flex: 1,

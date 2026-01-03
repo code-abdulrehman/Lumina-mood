@@ -141,10 +141,10 @@ export const StreakScreen = () => {
                     <View style={styles.actionRow}>
                         <TouchableOpacity
                             onPress={handleShareStreak}
-                            style={[styles.actionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+                            style={[styles.actionBtn, { backgroundColor: theme.card }]}
                         >
-                            <Share2 size={18} color={primaryColor} />
-                            <Text style={[styles.actionBtnText, { color: primaryColor }]}>Share Streak</Text>
+                            <Share2 size={18} color={theme.primary} />
+                            <Text style={[styles.actionBtnText, { color: theme.primary }]}>Share Streak</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     },
 
     actionRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 32 },
-    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 20, borderWidth: 1 },
+    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 1 },
     actionBtnText: { fontSize: 14, fontWeight: '800', marginLeft: 10 },
 
     timelineSection: { marginBottom: 32 },

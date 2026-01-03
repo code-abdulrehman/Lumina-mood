@@ -28,7 +28,7 @@ export const MoodRow: React.FC<MoodRowProps> = ({ mood, onPress }) => {
             <View style={[styles.iconContainer, { backgroundColor: config?.color || '#eee' }]}>
                 <MoodIcon
                     iconName={mood.iconName}
-                    size={20}
+                    size={30}
                     color="#fff"
                     customImage={config?.customImage}
                 />

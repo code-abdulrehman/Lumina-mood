@@ -193,11 +193,13 @@ export const InsightsScreen = () => {
                     {reportData && (
                         <TouchableOpacity
                             onPress={handleShareReport}
-                            style={[styles.shareAction, { backgroundColor: primaryColor }]}
+                            style={[styles.shareAction, { backgroundColor: theme.card }]}
                             activeOpacity={0.8}
                         >
-                            <Share2 size={18} color="#FFF" />
-                            <Text style={styles.shareActionText}>Share {range === '7d' ? '7D' : range.toUpperCase()} Report</Text>
+                            <Share2 size={18} color={theme.primary} />
+                            <Text style={[styles.shareActionText, { color: theme.primary }]}>
+                                Share {range === '7d' ? '7D' : range.toUpperCase()} Report
+                            </Text>
                         </TouchableOpacity>
                     )}
 
@@ -529,8 +531,8 @@ const styles = StyleSheet.create({
     barBg: { height:12, borderRadius: 6, overflow: 'hidden' },
     barFill: { height: '100%', borderRadius: 6 },
 
-    shareAction: { height: 50, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-    shareActionText: { color: '#FFF', fontSize: 14, fontWeight: '800', marginLeft: 10 },
+    shareAction: { height: 50, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation:1 },
+    shareActionText: { fontSize: 14, fontWeight: '800', marginLeft: 10 },
 
     chartBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 140 },
     chartCol: { alignItems: 'center', flex: 1 },
