@@ -80,6 +80,16 @@ export const SettingsScreen = () => {
         showToast("Settings updated successfully.", 'success');
     };
 
+    const handleProfileSave = async () => {
+        setIsSaving(true);
+        await updateUserSettings({
+            userName: nameInput.trim(),
+            interests: selectedInterests
+        });
+        setIsSaving(false);
+        showToast("Profile updated.", 'success');
+    };
+
     const handleClearData = () => {
         Alert.alert(
             "Clear All Data",
@@ -199,7 +209,7 @@ export const SettingsScreen = () => {
                             </View>
                             <TouchableOpacity
                                 style={[styles.saveButton, { backgroundColor: theme.primary, borderRadius: theme.radius, marginTop: 24, marginBottom: 0 }]}
-                                onPress={handleSave}
+                                onPress={handleProfileSave}
                             >
                                 <Text style={styles.saveButtonText}>Save Profile</Text>
                             </TouchableOpacity>

@@ -28,6 +28,7 @@ import { Flame, Send, Sparkles, BrainCircuit, Copy, Check, MessageCircle, ArrowR
 import { getGeminiChatResponse, parseSuggestions, ChatMessage } from '../utils/GeminiService';
 import { MoodConfig, MoodEntry } from '../types/mood';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import MoodIcon from '../components/MoodIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -57,31 +58,47 @@ export const HomeScreen = () => {
     const navigation = useNavigation<any>();
     const { addMood, updateMoodEntry, moods, apiKey, theme, userName, interests } = useMood();
     const streak = calculateStreak(moods);
+    const tabBarHeight = useBottomTabBarHeight();
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const keyboardShowListener = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+        const keyboardHideListener = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+        return () => {
+            keyboardShowListener.remove();
+            keyboardHideListener.remove();
+        };
+    }, []);
 
     const [selectedMood, setSelectedMood] = useState<MoodConfig | null>(null);
     const [currentEntry, setCurrentEntry] = useState<MoodEntry | null>(null);
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [isThinking, setIsThinking] = useState(false);
     const [userInput, setUserInput] = useState('');
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [isThinking, setIsThinking] = useState(false);
 
+    // Refs
+    const scrollRef = useRef<ScrollView>(null);
+    const inputRef = useRef<TextInput>(null);
     const rotation = useRef(new Animated.Value(0)).current;
     const footerScroll = useRef(new Animated.Value(0)).current;
+
+    // Animation Refs
     const lastAngle = useRef(0);
     const rotationOffset = useRef(0);
     const containerRef = useRef<View>(null);
     const containerCenter = useRef({ x: 0, y: 0 });
-    const autoSpinDirection = useRef(1); // 1 for clockwise, -1 for counter
+    const autoSpinDirection = useRef(1);
+    const footerScrollOffset = useRef(0);
+    const autoFooterDirection = useRef(-1);
 
-    useEffect(() => {
-        if (!selectedMood) {
-            startAutoSpin();
-        } else {
-            rotation.stopAnimation();
-            startFooterAnimation();
-        }
-    }, [selectedMood]);
+
+
 
     // Verify existence of current entry (in case deleted elsewhere)
     useEffect(() => {
@@ -111,8 +128,7 @@ export const HomeScreen = () => {
         });
     };
 
-    const footerScrollOffset = useRef(0);
-    const autoFooterDirection = useRef(-1); // -1 for left (default), 1 for right
+
 
     const startFooterAnimation = (startVal?: number) => {
         footerScroll.stopAnimation();
@@ -136,6 +152,15 @@ export const HomeScreen = () => {
             }
         });
     };
+
+    useEffect(() => {
+        if (!selectedMood) {
+            startAutoSpin();
+        } else {
+            rotation.stopAnimation();
+            startFooterAnimation();
+        }
+    }, [selectedMood]);
 
     const circlePanResponder = useRef(
         PanResponder.create({
@@ -269,8 +294,7 @@ export const HomeScreen = () => {
         outputRange: ['360000deg', '-360000deg'],
     });
 
-    const scrollRef = useRef<ScrollView>(null);
-    const inputRef = useRef<TextInput>(null);
+
 
     // Auto-scroll logic
     const scrollToBottom = (delay = 100) => {
@@ -585,7 +609,8 @@ export const HomeScreen = () => {
                         styles.footerContainer,
                         {
                             borderTopColor: theme.border,
-                            paddingBottom: Math.max(insets.bottom, 8),
+                            paddingBottom: isKeyboardVisible ? 10 : 0,
+                            marginBottom: isKeyboardVisible ? 0 : tabBarHeight + 10,
                             borderTopWidth: selectedMood ? 0 : 0,
                             paddingHorizontal: selectedMood ? 0 : 20,
                             paddingTop: selectedMood ? 0 : 12,
@@ -843,7 +868,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     compactMoodScroll: {
-        paddingVertical: 10,
+        paddingVertical: 20,
         paddingHorizontal: 10,
         alignItems: 'center',
     },
