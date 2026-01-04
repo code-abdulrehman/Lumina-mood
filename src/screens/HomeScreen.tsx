@@ -368,14 +368,14 @@ export const HomeScreen = () => {
 
             const fallbackSuggestions = errorMsg.includes('Quota') || errorMsg.includes('Too Many Requests')
                 ? [
-                    "Wait and try again later?",
-                    "Track mood without AI?",
-                    "Check Settings for API key?"
+                    "I'll wait a bit",
+                    "Just save for now",
+                    "Check Settings"
                 ]
                 : [
                     "Try again?",
-                    "Check internet connection?",
-                    "Go to Settings?"
+                    "Check internet?",
+                    "Check Settings"
                 ];
 
             const newHistory: ChatMessage[] = [{ role: 'model', text: errorChatMsg }];
@@ -424,14 +424,14 @@ export const HomeScreen = () => {
 
             const fallbackSuggestions = errorMsg.includes('Quota') || errorMsg.includes('Too Many Requests')
                 ? [
-                    "Continue without AI?",
-                    "Try again in a few minutes?",
-                    "Update API key in Settings?"
+                    "Just save for now",
+                    "I'll wait a bit",
+                    "Check Settings"
                 ]
                 : [
                     "Retry message?",
-                    "Check connection?",
-                    "Go to Settings?"
+                    "Check internet?",
+                    "Check Settings"
                 ];
 
             const finalHistory: ChatMessage[] = [...updatedHistory, { role: 'model', text: errorChatMsg }];
@@ -451,7 +451,7 @@ export const HomeScreen = () => {
             return;
         }
 
-        if (question.includes("Track mood without AI") || question.includes("Continue without AI")) {
+        if (question.includes("save") || question.includes("without AI") || question.includes("Continue")) {
             setSuggestions([]);
             showToast("Mood saved locally! You can check History & Insights.", 'success');
             return;
@@ -529,7 +529,7 @@ export const HomeScreen = () => {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
                     <ScrollView
                         ref={scrollRef}
@@ -540,15 +540,14 @@ export const HomeScreen = () => {
                     >
                         {!selectedMood ? (
                             <View style={styles.initialState}>
+                                {/* ... circular mood selector ... */}
                                 <Animated.View
                                     {...circlePanResponder.panHandlers}
                                     onLayout={(e) => {
                                         const { x, y, width, height } = e.nativeEvent.layout;
-                                        // Note: we need page coordinates, but for a centered item this approximation works
-                                        // Better to use measureInWindow in a real hook but this is a good start.
                                         containerCenter.current = {
                                             x: SCREEN_WIDTH / 2,
-                                            y: y + height / 2 + (Platform.OS === 'ios' ? 120 : 100) // Adjustment for header
+                                            y: y + height / 2 + (Platform.OS === 'ios' ? 0 : 0) // Removed offset
                                         };
                                     }}
                                     style={[
@@ -608,7 +607,7 @@ export const HomeScreen = () => {
                                 {chatHistory.map((msg, idx) => (
                                     <View key={idx} style={[
                                         styles.messageBubble,
-                                        msg.role === 'user' ? styles.userBubble : [styles.modelCard, { borderRadius: theme.radiusLarge, backgroundColor: theme.primary + "20" }],
+                                        msg.role === 'user' ? [styles.userBubble, { backgroundColor: theme.card }] : [styles.modelCard, { borderRadius: theme.radiusLarge, backgroundColor: (theme.primary || '#9cb167') + "20" }],
                                     ]}>
                                         {msg.role === 'model' && (
                                             <View style={styles.modelHeaderContainer}>
@@ -616,18 +615,16 @@ export const HomeScreen = () => {
                                                     <Sparkles size={16} color={theme.primary} />
                                                     <Text style={[styles.modelTitle, { color: theme.primary }]}>AI Companion</Text>
                                                 </View>
-                                                {msg.role === 'model' && (
-                                                    <TouchableOpacity
-                                                        style={styles.copyBtn}
-                                                        onPress={() => handleCopy(msg.text, idx)}
-                                                    >
-                                                        {copiedIndex === idx ? (
-                                                            <Check size={16} color={theme.primary} />
-                                                        ) : (
-                                                            <Copy size={16} color={theme.textSecondary} />
-                                                        )}
-                                                    </TouchableOpacity>
-                                                )}
+                                                <TouchableOpacity
+                                                    style={styles.copyBtn}
+                                                    onPress={() => handleCopy(msg.text, idx)}
+                                                >
+                                                    {copiedIndex === idx ? (
+                                                        <Check size={16} color={theme.primary} />
+                                                    ) : (
+                                                        <Copy size={16} color={theme.textSecondary} />
+                                                    )}
+                                                </TouchableOpacity>
                                             </View>
                                         )}
                                         <MarkdownText
@@ -678,8 +675,8 @@ export const HomeScreen = () => {
                         styles.footerContainer,
                         {
                             borderTopColor: theme.border,
-                            paddingBottom: isKeyboardVisible ? 10 : 0,
-                            marginBottom: isKeyboardVisible ? 0 : tabBarHeight + 10,
+                            paddingBottom: isKeyboardVisible ? 10 : 10,
+                            marginBottom: isKeyboardVisible ? 0 : (tabBarHeight || 60) + 10,
                             borderTopWidth: selectedMood ? 0 : 0,
                             paddingHorizontal: selectedMood ? 0 : 20,
                             paddingTop: selectedMood ? 0 : 12,

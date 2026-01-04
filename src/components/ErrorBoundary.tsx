@@ -16,6 +16,73 @@ interface State {
     lastErrorMessage: string;
 }
 
+const ErrorFallbackView = ({
+    isInfiniteLoop,
+    countdown,
+    error,
+    errorCount,
+    onRetry,
+    onReset
+}: {
+    isInfiniteLoop: boolean;
+    countdown: number;
+    error: Error | null;
+    errorCount: number;
+    onRetry: () => void;
+    onReset: () => void;
+}) => {
+    const { theme } = useMood();
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.content}>
+                <AlertTriangle size={64} color="#EF4444" style={styles.icon} />
+                <Text style={styles.title}>
+                    {isInfiniteLoop ? '⚠️ Infinite Error Loop Detected' : 'Oops! Something went wrong.'}
+                </Text>
+                <Text style={styles.subtitle}>
+                    {isInfiniteLoop
+                        ? 'The same error occurred multiple times. Auto-reload has been disabled to prevent crashes.'
+                        : 'The app will automatically reload in:'}
+                </Text>
+
+                {!isInfiniteLoop && (
+                    <>
+                        <View style={styles.countdownContainer}>
+                            <Text style={styles.countdown}>{countdown}</Text>
+                            <Text style={styles.seconds}>seconds</Text>
+                        </View>
+                        <ActivityIndicator size="large" color={theme.primary} style={styles.loader} />
+                    </>
+                )}
+
+                <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>
+                        {error?.message || 'Unknown error occurred'}
+                    </Text>
+                    {isInfiniteLoop && (
+                        <Text style={[styles.errorText, { marginTop: 8, fontWeight: 'bold' }]}>
+                            Error occurred {errorCount} times
+                        </Text>
+                    )}
+                </View>
+
+                {isInfiniteLoop ? (
+                    <TouchableOpacity style={[styles.button, { backgroundColor: '#EF4444' }]} onPress={onReset}>
+                        <RefreshCcw size={20} color="#FFF" style={styles.buttonIcon} />
+                        <Text style={styles.buttonText}>Reset & Try Again</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity style={styles.button} onPress={onRetry}>
+                        <RefreshCcw size={20} color="#FFF" style={styles.buttonIcon} />
+                        <Text style={styles.buttonText}>Reload Now</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </SafeAreaView>
+    );
+};
+
 export class ErrorBoundary extends Component<Props, State> {
     private countdownInterval: NodeJS.Timeout | null = null;
     private static errorHistory: { message: string; timestamp: number }[] = [];
@@ -117,56 +184,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
     public render() {
         if (this.state.hasError) {
-            const isInfiniteLoop = this.state.errorCount >= 3;
-            const { theme } = useMood();
-
             return (
-                <SafeAreaView style={styles.container}>
-                    <View style={styles.content}>
-                        <AlertTriangle size={64} color="#EF4444" style={styles.icon} />
-                        <Text style={styles.title}>
-                            {isInfiniteLoop ? '⚠️ Infinite Error Loop Detected' : 'Oops! Something went wrong.'}
-                        </Text>
-                        <Text style={styles.subtitle}>
-                            {isInfiniteLoop
-                                ? 'The same error occurred multiple times. Auto-reload has been disabled to prevent crashes.'
-                                : 'The app will automatically reload in:'}
-                        </Text>
-
-                        {!isInfiniteLoop && (
-                            <>
-                                <View style={styles.countdownContainer}>
-                                    <Text style={styles.countdown}>{this.state.countdown}</Text>
-                                    <Text style={styles.seconds}>seconds</Text>
-                                </View>
-                                <ActivityIndicator size="large" color={theme.primary} style={styles.loader} />
-                            </>
-                        )}
-
-                        <View style={styles.errorBox}>
-                            <Text style={styles.errorText}>
-                                {this.state.error?.message || 'Unknown error occurred'}
-                            </Text>
-                            {isInfiniteLoop && (
-                                <Text style={[styles.errorText, { marginTop: 8, fontWeight: 'bold' }]}>
-                                    Error occurred {this.state.errorCount} times
-                                </Text>
-                            )}
-                        </View>
-
-                        {isInfiniteLoop ? (
-                            <TouchableOpacity style={[styles.button, { backgroundColor: '#EF4444' }]} onPress={this.handleClearErrorHistory}>
-                                <RefreshCcw size={20} color="#FFF" style={styles.buttonIcon} />
-                                <Text style={styles.buttonText}>Reset & Try Again</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
-                                <RefreshCcw size={20} color="#FFF" style={styles.buttonIcon} />
-                                <Text style={styles.buttonText}>Reload Now</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </SafeAreaView>
+                <ErrorFallbackView
+                    isInfiniteLoop={this.state.errorCount >= 3}
+                    countdown={this.state.countdown}
+                    error={this.state.error}
+                    errorCount={this.state.errorCount}
+                    onRetry={this.handleRetry}
+                    onReset={this.handleClearErrorHistory}
+                />
             );
         }
 

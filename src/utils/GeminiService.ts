@@ -48,8 +48,11 @@ export const getGeminiChatResponse = async (
             2. Be warm, supportive, and never harsh.
             3. Mention or relate to one of their interests if helpful/appropriate for their current mood.
             4. Offer a quick, replyable follow-up.
-            5. ALWAYS end with exactly 3 short suggestions/questions in this format:
-            [SUGGESTIONS]: Suggestion 1? | Suggestion 2? | Suggestion 3?
+            5. ALWAYS end with exactly 3 short suggested follow-up questions THE USER CAN ASK YOU (to help them feel better, explore interests, or just chat).
+            Format: [SUGGESTIONS]: Question 1? | Question 2? | Question 3?
+            
+            Examples of good suggestions:
+            "How can I relax?" | "Tell me a fun fact about [Interest]?" | "Suggest a movie?" | "Why do I feel this way?" | "Give me a motivation quote?"
             
             No medical advice.`;
 

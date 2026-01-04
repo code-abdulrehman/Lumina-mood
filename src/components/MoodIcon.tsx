@@ -51,6 +51,17 @@ const MoodIcon: React.FC<MoodIconProps> = ({
                 />
             );
         }
+
+        // If it's an object (Webpack module or object with uri)
+        if (typeof customImage === 'object') {
+            return (
+                <Image
+                    source={customImage as any}
+                    style={{ width: size, height: size }}
+                    resizeMode="contain"
+                />
+            );
+        }
     }
 
     const LucideIcon = (Icons as any)[iconName] || Icons.Smile;
