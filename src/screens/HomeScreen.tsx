@@ -675,11 +675,12 @@ export const HomeScreen = () => {
                         styles.footerContainer,
                         {
                             borderTopColor: theme.border,
-                            paddingBottom: isKeyboardVisible ? 10 : 10,
-                            marginBottom: isKeyboardVisible ? 0 : (tabBarHeight || 60) + 10,
+                            paddingBottom: 10,
+                            marginBottom: isKeyboardVisible ? 75 : 75, // Adjust margin based on keyboard
                             borderTopWidth: selectedMood ? 0 : 0,
                             paddingHorizontal: selectedMood ? 0 : 20,
                             paddingTop: selectedMood ? 0 : 12,
+                            zIndex: 100, // Ensure it sits correctly in stack
                         }
                     ]}>
                         {selectedMood && (

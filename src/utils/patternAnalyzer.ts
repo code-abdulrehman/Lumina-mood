@@ -98,8 +98,14 @@ export const getTrendActivity = (moods: MoodEntry[], range: '7d' | '1m' | '1y' |
     }
 
     if (range === '1m') {
-        const startDate = subMonths(now, 1);
-        const weeks = eachWeekOfInterval({ start: startDate, end: now });
+        const startDate = subDays(now, 30);
+        let weeks = eachWeekOfInterval({ start: startDate, end: now });
+
+        // Ensure we only show max 5 weeks
+        if (weeks.length > 5) {
+            weeks = weeks.slice(weeks.length - 5);
+        }
+
         return weeks.map((weekStart, idx) => {
             const weekMoods = moods.filter(m => isSameWeek(new Date(m.timestamp), weekStart));
             return {
@@ -111,7 +117,8 @@ export const getTrendActivity = (moods: MoodEntry[], range: '7d' | '1m' | '1y' |
     }
 
     if (range === '1y') {
-        const startDate = subYears(now, 1);
+        // Show exactly 12 months (current + previous 11)
+        const startDate = subMonths(now, 11);
         const months = eachMonthOfInterval({ start: startDate, end: now });
         return months.map(monthStart => {
             const monthMoods = moods.filter(m => isSameMonth(new Date(m.timestamp), monthStart));
