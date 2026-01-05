@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { format } from 'date-fns';
 import { MoodEntry } from '../types/mood';
 import { MOOD_CONFIGS } from '../data/moods';
@@ -23,10 +23,21 @@ export const MoodRow: React.FC<MoodRowProps> = ({ mood, onPress }) => {
     return (
         <Card onPress={onPress} padding="small" style={styles.cardSpacing}>
             <View style={styles.contentContainer}>
-                <View style={[styles.iconContainer, { backgroundColor: config?.color || '#eee' }]}>
+                <View style={[styles.iconContainer,
+                Platform.OS !== 'android' ?
+                    { backgroundColor: config?.color || '#eee', }
+                    :
+                    {
+                        overflow: 'hidden',
+                        shadowColor: config?.color || '#eee',
+                        shadowOffset: { width: 2, height: 2 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 10,
+                        elevation: 16,
+                    }]}>
                     <MoodIcon
                         iconName={mood.iconName}
-                        size={30}
+                        size={Platform.OS !== 'android' ? 28 : 36}
                         color="#fff"
                         customImage={config?.customImage}
                     />
@@ -55,11 +66,11 @@ const styles = StyleSheet.create({
     },
     iconContainer: {
         width: 44,
-        height: 44,
+        height: 36,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 14,
+        marginRight: 6,
     },
     textContainer: {
         flex: 1,

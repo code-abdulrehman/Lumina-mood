@@ -63,7 +63,7 @@ export const HomeScreen = () => {
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
     const footerBottomSpacing = isKeyboardVisible
         ? 10
-        : tabBarHeight-65;
+        : 15;
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
         const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';

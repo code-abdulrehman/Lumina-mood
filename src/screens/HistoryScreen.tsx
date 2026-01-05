@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
     },
     deleteBtn: {
         width: 48,
-        height: 62,
-        borderRadius: 15,
+        height:62,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 5,
