@@ -8,17 +8,14 @@ import {
     ActivityIndicator,
     Dimensions,
     TextInput,
-    KeyboardAvoidingView,
     Platform,
     Alert,
     Share,
-    Keyboard,
     Animated,
     Easing,
     PanResponder
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Icons from 'lucide-react-native';
 import { MOOD_CONFIGS } from '../data/moods';
 import { useMood } from '../context/MoodContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
@@ -28,7 +25,6 @@ import { Flame, Send, Sparkles, BrainCircuit, Copy, Check, MessageCircle, ArrowR
 import { getGeminiChatResponse, parseSuggestions, ChatMessage } from '../utils/GeminiService';
 import { MoodConfig, MoodEntry } from '../types/mood';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import MoodIcon from '../components/MoodIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -58,24 +54,7 @@ export const HomeScreen = () => {
     const navigation = useNavigation<any>();
     const { addMood, updateMoodEntry, moods, apiKey, theme, userName, interests } = useMood();
     const streak = calculateStreak(moods);
-    const tabBarHeight = useBottomTabBarHeight();
 
-    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-    const footerBottomSpacing = isKeyboardVisible
-        ? 10
-        : 15;
-    useEffect(() => {
-        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-        const keyboardShowListener = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-        const keyboardHideListener = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-
-        return () => {
-            keyboardShowListener.remove();
-            keyboardHideListener.remove();
-        };
-    }, []);
 
     const [selectedMood, setSelectedMood] = useState<MoodConfig | null>(null);
     const [currentEntry, setCurrentEntry] = useState<MoodEntry | null>(null);
@@ -177,10 +156,10 @@ export const HomeScreen = () => {
                 lastAngle.current = Math.atan2(dy, dx) * (180 / Math.PI);
 
                 // Get current visible rotation value
-                rotation.addListener(({ value }) => {
+                const id = rotation.addListener(({ value }) => {
                     rotationOffset.current = value;
                 });
-                rotation.removeListener(''); // Just to trigger getter if needed, but better to use listener properly
+                rotation.removeListener(id);
             },
             onPanResponderMove: (evt) => {
                 const { pageX, pageY } = evt.nativeEvent;
@@ -528,12 +507,7 @@ export const HomeScreen = () => {
                     </View>
                 </View>
 
-                {/* CONTENT AREA */}
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                >
+               
                     <ScrollView
                         ref={scrollRef}
                         style={styles.chatScroll}
@@ -675,19 +649,18 @@ export const HomeScreen = () => {
 
                     {/* FOOTER BAR */}
                     <View style={[
-                        // styles.footerContainer,
+                        styles.footerContainer,
                         {
                             borderTopColor: theme.border,
-                            paddingBottom: footerBottomSpacing,
-                            marginBottom: isKeyboardVisible ? 75 : 75, // Adjust margin based on keyboard
+                            paddingBottom: 10,
+                            marginBottom: 80,
+
                             borderTopWidth: selectedMood ? 0 : 0,
                             paddingHorizontal: selectedMood ? 0 : 20,
                             paddingTop: selectedMood ? 0 : 12,
                             zIndex: 100, // Ensure it sits correctly in stack
                         }
                     ]}>
-
-
                         {selectedMood && (
                             <View
                                 style={styles.infiniteFooterWrapper}
@@ -756,7 +729,6 @@ export const HomeScreen = () => {
                             </TouchableOpacity>
                         )}
                     </View>
-                </KeyboardAvoidingView>
             </View>
         </ScreenWrapper>
     );
@@ -934,6 +906,9 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         marginRight: 10,
+    },
+    footerContainer: {
+        paddingHorizontal: 20,
     },
     compactMoodScroll: {
         paddingVertical: 20,

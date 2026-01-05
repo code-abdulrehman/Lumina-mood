@@ -23,18 +23,19 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.abdulrehman62.luminamood"
+      "package": "com.user1.abdulrehman.luminamood"
     },
     "web": {
       "favicon": "./assets/branding_logo.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "1746c5fb-3940-49e4-9646-2da6f2dcfe0a"
-      }
-    },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "86effc55-2b37-4a5a-a0ba-fd2f00e08913"
+      }
+    },
+    "owner": "user1.abdulrehman"
   }
 }
